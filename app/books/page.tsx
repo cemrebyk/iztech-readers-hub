@@ -1,4 +1,4 @@
-import { supabase } from '../../lib/supabase'
+import { createClient } from '../../lib/supabase-server'
 import RefreshButton from './RefreshButton' // YENİ BUTONUMUZU İÇE AKTARDIK!
 import SearchBox from './SearchBox'
 import Navbar from '../components/Navbar'
@@ -24,6 +24,7 @@ export default async function BooksPage(props: { searchParams: Promise<{ q?: str
     const searchParams = await props.searchParams;
     const q = searchParams?.q || '';
 
+    const supabase = await createClient();
     let query = supabase.from('books').select('*');
     if (q) {
         query = query.or(`title.ilike.%${q}%,author.ilike.%${q}%`);

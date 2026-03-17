@@ -1,4 +1,3 @@
-import { supabase } from '../lib/supabase'
 import HomepageSignup from './HomepageSignup' // Dosya yolunu nereye açtığına göre ayarla
 import Navbar from './components/Navbar'
 

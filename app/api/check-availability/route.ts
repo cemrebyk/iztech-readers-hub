@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import puppeteer from 'puppeteer';
-import { supabase } from '../../../lib/supabase';
+import { createClient } from '../../../lib/supabase-server';
 
 export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
@@ -35,6 +35,7 @@ export async function GET(request: Request) {
 
         // 2. VERİTABANINI GÜNCELLEME
         // .select() ekledik ki Supabase bize gerçekten bir satırı güncelleyip güncellemediğini söylesin.
+        const supabase = await createClient();
         const { data: updatedRow, error: dbError } = await supabase
             .from('books')
             .update({ is_available: isAvailable })
