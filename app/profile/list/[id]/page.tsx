@@ -2,6 +2,7 @@ import { createClient } from '../../../../lib/supabase-server';
 import { notFound } from 'next/navigation';
 import Navbar from '../../../components/Navbar';
 import Link from 'next/link';
+import RemoveFromListAction from './RemoveFromListAction';
 
 export default async function ListDetailsPage({ params }: { params: Promise<{ id: string }> }) {
     const { id } = await params;
@@ -27,7 +28,7 @@ export default async function ListDetailsPage({ params }: { params: Promise<{ id
         .eq('id', id)
         .single();
 
-    // Hata yönetimi (Cüneyt Hoca için debug bilgisi ekli)
+    // Hata yönetimi
     if (error || !listData) {
         console.error("Detay sayfası hatası:", error);
         return (
@@ -86,8 +87,8 @@ export default async function ListDetailsPage({ params }: { params: Promise<{ id
                                         </span>
                                     </div>
 
-                                    {/* Kütüphane Durum Göstergesi */}
-                                    <div style={{ textAlign: 'right', minWidth: '140px' }}>
+                                    {/* Sağ Panel: Durum ve Kaldırma Butonu */}
+                                    <div style={{ textAlign: 'right', minWidth: '140px', display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
                                         <div style={{
                                             padding: '6px 14px',
                                             borderRadius: '25px',
@@ -100,11 +101,15 @@ export default async function ListDetailsPage({ params }: { params: Promise<{ id
                                         }}>
                                             {item.books.is_available ? '● RAFTA' : '○ ÖDÜNÇTE'}
                                         </div>
+
                                         {item.books.is_available && (
-                                            <p style={{ margin: 0, fontSize: '0.85rem', color: '#666' }}>
+                                            <p style={{ margin: '0 0 10px 0', fontSize: '0.85rem', color: '#666' }}>
                                                 Konum: <strong>{item.books.shelf_location}</strong>
                                             </p>
                                         )}
+
+                                        {/* Silme Butonu Bileşeni */}
+                                        <RemoveFromListAction listId={id} bookId={item.books.id} />
                                     </div>
                                 </div>
                             ))
