@@ -1,6 +1,7 @@
 import { createClient } from '../../lib/supabase-server'
 import RefreshButton from './RefreshButton' // YENİ BUTONUMUZU İÇE AKTARDIK!
 import SearchBox from './SearchBox'
+import CategoryFilter from './CategoryFilter'
 import Navbar from '../components/Navbar'
 
 export const dynamic = 'force-dynamic'
@@ -20,19 +21,38 @@ const coverGradients = [
     "linear-gradient(135deg, #7f5539 0%, #5c3d29 100%)"
 ];
 
-export default async function BooksPage(props: { searchParams: Promise<{ q?: string }> }) {
+export default async function BooksPage(props: { searchParams: Promise<{ q?: string; category?: string }> }) {
     const searchParams = await props.searchParams;
     const q = searchParams?.q || '';
+    const category = searchParams?.category || '';
 
     const supabase = await createClient();
-    let query = supabase.from('books').select('*');
-    if (q) {
-        query = query.or(`title.ilike.%${q}%,author.ilike.%${q}%`);
-    }
 
-    const { data: books, error } = await query;
+    // Fetch all books (we need them all to compute category counts)
+    let allBooksQuery = supabase.from('books').select('*');
+    if (q) {
+        allBooksQuery = allBooksQuery.or(`title.ilike.%${q}%,author.ilike.%${q}%`);
+    }
+    const { data: allBooks, error } = await allBooksQuery;
 
     if (error) console.error("Hata:", error)
+
+    // Extract distinct categories with counts from the fetched books
+    const categoryMap: Record<string, number> = {};
+    allBooks?.forEach((book) => {
+        const genre = book.genre?.trim();
+        if (genre) {
+            categoryMap[genre] = (categoryMap[genre] || 0) + 1;
+        }
+    });
+    const categories = Object.entries(categoryMap)
+        .map(([name, count]) => ({ name, count }))
+        .sort((a, b) => a.name.localeCompare(b.name));
+
+    // Filter by selected category
+    const books = category
+        ? allBooks?.filter((book) => book.genre?.trim() === category)
+        : allBooks;
 
     return (
         <>
@@ -58,7 +78,7 @@ export default async function BooksPage(props: { searchParams: Promise<{ q?: str
                                 <h3>🔍 Search</h3>
                                 <SearchBox />
                             </div>
-                            {/* ... (Sidebar'ın diğer kısımları kod çok uzamasın diye görsel olarak aynı kalacak şekilde şimdilik atlıyorum, seninkinde kalabilir) ... */}
+                            <CategoryFilter categories={categories} totalBooks={allBooks?.length || 0} />
                         </aside>
 
                         {/* Book Grid Area */}
