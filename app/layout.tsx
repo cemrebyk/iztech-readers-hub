@@ -6,6 +6,7 @@ import "./globals.css";
 import "./styles/styles.css";
 import "./styles/books.css";
 import "./styles/book-details.css";
+import "./styles/clubs.css";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-body" });
 const merriweather = Merriweather({ weight: ["400", "700", "900"], subsets: ["latin"], variable: "--font-heading" });

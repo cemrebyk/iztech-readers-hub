@@ -78,6 +78,16 @@ export default async function BooksPage(props: { searchParams: Promise<{ q?: str
                                 <h3>🔍 Search</h3>
                                 <SearchBox />
                             </div>
+                            <div className="sidebar-section">
+                                <h3>📖 Book Clubs</h3>
+                                <ul className="filter-list">
+                                    <li>
+                                        <a href="/clubs/bkfk" className="filter-btn" style={{ textDecoration: 'none', color: 'inherit' }}>
+                                            <span>BKFK Book Club</span>
+                                        </a>
+                                    </li>
+                                </ul>
+                            </div>
                             <CategoryFilter categories={categories} totalBooks={allBooks?.length || 0} />
                         </aside>
 
