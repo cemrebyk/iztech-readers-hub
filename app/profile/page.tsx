@@ -2,6 +2,7 @@ import { createClient } from '../../lib/supabase-server';
 import { redirect } from 'next/navigation';
 import Navbar from '../components/Navbar';
 import CreateListForm from './CreateListForm';
+import ReadBooksSection from './ReadBooksSection';
 import Link from 'next/link'; // Navigasyon için eklendi
 
 export default async function ProfilePage() {
@@ -14,14 +15,26 @@ export default async function ProfilePage() {
         redirect('/login');
     }
 
-    // 2. Profil ve Listeleri paralel çek (Performance Optimization)
-    const [profileRes, listsRes] = await Promise.all([
+    // 2. Profil, Listeler ve Değerlendirmeleri paralel çek (Performance Optimization)
+    const [profileRes, listsRes, reviewsRes] = await Promise.all([
         supabase.from('profiles').select('*').eq('id', user.id).single(),
-        supabase.from('book_lists').select('*').eq('user_id', user.id).order('created_at', { ascending: false })
+        supabase.from('book_lists').select('*').eq('user_id', user.id).order('created_at', { ascending: false }),
+        supabase.from('reviews').select('*, books(id, title, author)').eq('user_id', user.id).order('created_at', { ascending: false })
     ]);
 
     const profile = profileRes.data;
     const userLists = listsRes.data || [];
+    const userReviews = reviewsRes.data || [];
+
+    // Extract unique books from reviews (reviewed = read)
+    const readBooksMap = new Map<string, { id: string; title: string; author: string }>();
+    userReviews.forEach((review: any) => {
+        const book = review.books;
+        if (book && !readBooksMap.has(book.id)) {
+            readBooksMap.set(book.id, { id: book.id, title: book.title, author: book.author });
+        }
+    });
+    const readBooks = Array.from(readBooksMap.values());
 
     return (
         <>
@@ -40,12 +53,9 @@ export default async function ProfilePage() {
                         </div>
                     </div>
 
-                    {/* İstatistik Kartları */}
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '20px', marginBottom: '40px' }}>
-                        <div style={{ background: 'white', padding: '25px', borderRadius: '15px', borderLeft: '5px solid #9a0e20', boxShadow: '0 4px 10px rgba(0,0,0,0.03)' }}>
-                            <h3 style={{ margin: '0 0 10px 0', color: '#666' }}>📚 Okunan Kitaplar</h3>
-                            <p style={{ fontSize: '2.5rem', fontWeight: 'bold', margin: 0 }}>{profile?.books_read || 0}</p>
-                        </div>
+                    {/* Okuduğum Kitaplar - Expandable */}
+                    <div style={{ marginBottom: '40px' }}>
+                        <ReadBooksSection books={readBooks} />
                     </div>
 
                     {/* OKUMA LİSTELERİ */}
@@ -88,6 +98,45 @@ export default async function ProfilePage() {
                             ))}
                             {userLists.length === 0 && (
                                 <p style={{ textAlign: 'center', color: '#999', padding: '20px' }}>Henüz bir listen yok. Yukarıdan oluşturabilirsin!</p>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* DEĞERLENDİRMELERİM */}
+                    <div style={{ background: 'white', padding: '30px', borderRadius: '15px', boxShadow: '0 4px 15px rgba(0,0,0,0.05)', marginBottom: '30px' }}>
+                        <h2 style={{ marginBottom: '20px', borderBottom: '2px solid #eee', paddingBottom: '10px' }}>📝 Değerlendirmelerim</h2>
+
+                        <div className="profile-reviews-feed">
+                            {userReviews.map((review: any) => {
+                                const book = review.books;
+                                return (
+                                    <div key={review.id} className="profile-review-card">
+                                        <div className="profile-review-book-info">
+                                            <Link href={`/books/${book?.id}`} style={{ textDecoration: 'none' }}>
+                                                <h4 className="profile-review-book-title">{book?.title || 'Unknown Book'}</h4>
+                                            </Link>
+                                            <span className="profile-review-book-author">{book?.author || 'Unknown Author'}</span>
+                                        </div>
+                                        <div className="review-card-header">
+                                            <div className="review-card-stars">
+                                                {'★'.repeat(review.rating)}{'☆'.repeat(5 - review.rating)}
+                                            </div>
+                                            <span className="review-card-date">
+                                                {new Date(review.created_at).toLocaleDateString('en-US', {
+                                                    year: 'numeric', month: 'short', day: 'numeric'
+                                                })}
+                                            </span>
+                                        </div>
+                                        <div className="review-card-tags">
+                                            {(review.tags || []).map((tag: string) => (
+                                                <span key={tag} className="review-tag">{tag}</span>
+                                            ))}
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                            {userReviews.length === 0 && (
+                                <p style={{ textAlign: 'center', color: '#999', padding: '20px' }}>Henüz bir değerlendirmen yok.</p>
                             )}
                         </div>
                     </div>
