@@ -6,16 +6,14 @@ import { useState, useEffect } from 'react'
 export default function SearchBox() {
     const router = useRouter()
     const searchParams = useSearchParams()
-    // Eğer URL'de önceden bir arama varsa onu kutunun içine yazıyoruz
     const [searchTerm, setSearchTerm] = useState(searchParams.get('q') || '')
 
-    // Kullanıcı her harf girdiğinde 300 milisaniye bekleyip (Debounce) URL'yi güncelliyoruz
     useEffect(() => {
         const delayDebounceFn = setTimeout(() => {
             if (searchTerm) {
                 router.push(`/books?q=${searchTerm}`)
             } else {
-                router.push(`/books`) // Kutu boşalırsa tüm kitapları geri getir
+                router.push(`/books`)
             }
         }, 300)
 

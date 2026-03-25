@@ -1,6 +1,7 @@
 import { createClient } from '../../lib/supabase-server'
-import RefreshButton from './RefreshButton' // YENİ BUTONUMUZU İÇE AKTARDIK!
+import RefreshButton from './RefreshButton'
 import SearchBox from './SearchBox'
+import CatalogResults from './CatalogResults'
 import CategoryFilter from './CategoryFilter'
 import Navbar from '../components/Navbar'
 
@@ -53,6 +54,9 @@ export default async function BooksPage(props: { searchParams: Promise<{ q?: str
     const books = category
         ? allBooks?.filter((book) => book.genre?.trim() === category)
         : allBooks;
+
+    // Collect DB book titles for deduplication in catalog results
+    const dbBookTitles = allBooks?.map((book) => book.title) || [];
 
     return (
         <>
@@ -118,13 +122,11 @@ export default async function BooksPage(props: { searchParams: Promise<{ q?: str
                                             <p className="book-author">{book.author}</p>
 
                                             <div className="book-meta" style={{ flexDirection: 'column', alignItems: 'flex-start', gap: '8px' }}>
-                                                {/* ETİKET VE BUTONU AYNI HİZAYA KOYDUK */}
                                                 <div style={{ display: 'flex', alignItems: 'center', width: '100%' }}>
                                                     <span className={`tag ${book.is_available ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`} style={{ fontWeight: 'bold' }}>
                                                         {book.is_available ? '📍 Rafta' : '⏳ Ödünçte'}
                                                     </span>
 
-                                                    {/* EĞER KİTABIN ISBN'İ VARSA CANLI SORGULAMA BUTONUNU GÖSTER */}
                                                     {book.isbn && (
                                                         <RefreshButton bookId={book.id} isbn={book.isbn} initialTitle={book.title} />
                                                     )}
@@ -147,6 +149,9 @@ export default async function BooksPage(props: { searchParams: Promise<{ q?: str
                                     </article>
                                 ))}
                             </div>
+
+                            {/* Catalog Results (from IYTE Library API) */}
+                            <CatalogResults dbBookTitles={dbBookTitles} />
                         </section>
                     </div>
                 </div>
