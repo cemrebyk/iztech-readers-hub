@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation';
 import Navbar from '../../components/Navbar';
 import AddToListAction from './AddToListAction';
 import ReviewForm from './ReviewForm';
+import RefreshButton from '../RefreshButton';
 
 export default async function BookDetailsPage({ params }: { params: Promise<{ id: string }> }) {
 
@@ -125,7 +126,10 @@ export default async function BookDetailsPage({ params }: { params: Promise<{ id
 
                                 {/* Library Availability */}
                                 <div className="shelf-info" style={{ background: 'white', padding: '25px', borderRadius: '15px', border: '1px solid #e0e0e0', boxShadow: '0 4px 12px rgba(0,0,0,0.05)', marginBottom: '30px' }}>
-                                    <h3 style={{ marginBottom: '15px', borderBottom: '1px solid #eee', paddingBottom: '10px' }}>Library Availability</h3>
+                                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '15px', borderBottom: '1px solid #eee', paddingBottom: '10px' }}>
+                                        <h3 style={{ margin: 0 }}>Library Availability</h3>
+                                        <RefreshButton bookId={String(bookId)} isbn={book.isbn || undefined} title={book.title} initialTitle={book.title} />
+                                    </div>
                                     <div style={{ display: 'flex', alignItems: 'center', gap: '15px', marginBottom: '15px' }}>
                                         <span style={{
                                             padding: '10px 20px',

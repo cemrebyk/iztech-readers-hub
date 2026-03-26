@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation';
 import Navbar from '../components/Navbar';
 import CreateListForm from './CreateListForm';
 import ReadBooksSection from './ReadBooksSection';
+import DeleteListButton from './DeleteListButton';
 import Link from 'next/link'; // Navigasyon için eklendi
 
 export default async function ProfilePage() {
@@ -66,35 +67,40 @@ export default async function ProfilePage() {
 
                         <div style={{ display: 'grid', gap: '15px', marginTop: '20px' }}>
                             {userLists.map((list: any) => (
-                                <Link
-                                    href={`/profile/list/${list.id}`}
-                                    key={list.id}
-                                    style={{ textDecoration: 'none', color: 'inherit' }}
-                                >
-                                    <div className="list-card" style={{
-                                        padding: '20px',
-                                        border: '1px solid #eee',
-                                        borderRadius: '12px',
-                                        background: 'white',
-                                        transition: 'all 0.2s ease',
-                                        cursor: 'pointer',
-                                        display: 'flex',
-                                        justifyContent: 'space-between',
-                                        alignItems: 'center',
-                                        // "Antigravity" etkisi için hover:
-                                        boxShadow: '0 2px 4px rgba(0,0,0,0.02)'
-                                    }}>
-                                        <div>
-                                            <h4 style={{ margin: 0, color: '#9a0e20', fontSize: '1.2rem' }}>{list.name}</h4>
-                                            <p style={{ margin: '5px 0 0 0', fontSize: '0.95rem', color: '#666' }}>
-                                                {list.description || "Açıklama yok."}
-                                            </p>
+                                <div key={list.id} className="list-card-wrapper" style={{ position: 'relative' }}>
+                                    <Link
+                                        href={`/profile/list/${list.id}`}
+                                        style={{ textDecoration: 'none', color: 'inherit', display: 'block' }}
+                                    >
+                                        <div className="list-card" style={{
+                                            padding: '20px',
+                                            border: '1px solid #eee',
+                                            borderRadius: '12px',
+                                            background: 'white',
+                                            transition: 'all 0.2s ease',
+                                            cursor: 'pointer',
+                                            display: 'flex',
+                                            justifyContent: 'space-between',
+                                            alignItems: 'center',
+                                            // "Antigravity" etkisi için hover:
+                                            boxShadow: '0 2px 4px rgba(0,0,0,0.02)',
+                                            paddingRight: '60px' // Buton için yer ayır
+                                        }}>
+                                            <div>
+                                                <h4 style={{ margin: 0, color: '#9a0e20', fontSize: '1.2rem' }}>{list.name}</h4>
+                                                <p style={{ margin: '5px 0 0 0', fontSize: '0.95rem', color: '#666' }}>
+                                                    {list.description || "Açıklama yok."}
+                                                </p>
+                                            </div>
+                                            <div style={{ color: '#9a0e20', fontSize: '1.2rem' }}>
+                                                →
+                                            </div>
                                         </div>
-                                        <div style={{ color: '#9a0e20', fontSize: '1.2rem' }}>
-                                            →
-                                        </div>
+                                    </Link>
+                                    <div style={{ position: 'absolute', right: '15px', top: '50%', transform: 'translateY(-50%)', zIndex: 2 }}>
+                                        <DeleteListButton listId={list.id} listName={list.name} />
                                     </div>
-                                </Link>
+                                </div>
                             ))}
                             {userLists.length === 0 && (
                                 <p style={{ textAlign: 'center', color: '#999', padding: '20px' }}>Henüz bir listen yok. Yukarıdan oluşturabilirsin!</p>

@@ -127,9 +127,7 @@ export default async function BooksPage(props: { searchParams: Promise<{ q?: str
                                                         {book.is_available ? '📍 Rafta' : '⏳ Ödünçte'}
                                                     </span>
 
-                                                    {book.isbn && (
-                                                        <RefreshButton bookId={book.id} isbn={book.isbn} initialTitle={book.title} />
-                                                    )}
+                                                    <RefreshButton bookId={book.id} isbn={book.isbn || undefined} title={book.title} initialTitle={book.title} />
                                                 </div>
                                                 <span className="book-reviews" style={{ fontSize: '0.8rem' }}>📍 {book.shelf_location}</span>
                                             </div>

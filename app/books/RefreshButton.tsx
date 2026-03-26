@@ -2,28 +2,40 @@
 
 import { useState } from 'react'
 
-export default function RefreshButton({ bookId, isbn, initialTitle }: { bookId: any, isbn: string, initialTitle: string }) {
+export default function RefreshButton({ bookId, isbn, title, initialTitle }: { bookId: any, isbn?: string, title?: string, initialTitle: string }) {
     const [loading, setLoading] = useState(false)
 
     const handleRefresh = async () => {
         try {
             setLoading(true)
 
-            // Sadece API'ye istek atıyoruz, gerisini o hallediyor!
-            // bookId'yi de gönderiyoruz ki API hangi kitabı güncelleyeceğini bilsin.
-            const res = await fetch(`/api/check-availability?isbn=${isbn}&id=${bookId}`)
+            let res: Response;
+
+            if (isbn) {
+                // ISBN-based check (Puppeteer scraping)
+                res = await fetch(`/api/check-availability?isbn=${isbn}&id=${bookId}`)
+            } else if (title) {
+                // Title-based check (catalog JSON API)
+                res = await fetch(`/api/check-availability-catalog?title=${encodeURIComponent(title)}&id=${bookId}`)
+            } else {
+                alert('No ISBN or title available to check.')
+                setLoading(false)
+                return
+            }
+
             const data = await res.json()
 
             if (data.db_updated) {
-                alert(`"${initialTitle}" için kütüphane durumu: ${data.raw_status_text}\n\nVeritabanı güncellendi!`)
-                // Next.js önbelleğini ezip sayfayı sertçe yeniliyoruz
+                alert(`"${initialTitle}" availability updated!\n\nStatus: ${data.is_available ? 'Available on Shelf ✅' : 'Currently Borrowed ⏳'}`)
                 window.location.reload()
+            } else if (data.error) {
+                alert(`Could not check: ${data.error}`)
             } else {
-                alert('Durum çekildi ama veritabanı güncellenemedi.')
+                alert('Status fetched but database could not be updated.')
             }
         } catch (error) {
             console.error(error)
-            alert('Bağlantı hatası oluştu.')
+            alert('Connection error.')
         } finally {
             setLoading(false)
         }
@@ -48,9 +60,9 @@ export default function RefreshButton({ bookId, isbn, initialTitle }: { bookId: 
                 transition: 'all 0.2s ease',
                 marginLeft: 'auto'
             }}
-            title="Raf durumunu güncelle"
+            title="Check live availability"
         >
-            {loading ? '⏳ Sorgulanıyor...' : '🔄 Canlı Sorgula'}
+            {loading ? '⏳ Checking...' : '🔄 Check Availability'}
         </button>
     )
 }

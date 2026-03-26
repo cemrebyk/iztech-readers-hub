@@ -105,7 +105,7 @@ export default function ReviewForm({ bookId, hasExistingReview }: ReviewFormProp
             {/* Tag Selection */}
             <div className="review-form-section">
                 <label className="form-label">
-                    Pick Tags <span className="tag-counter">({selectedTags.length}/3)</span>
+                    Pick Tags <span className="tag-counter">(Select 1 to 3) ({selectedTags.length}/3)</span>
                 </label>
                 <div className="selectable-tags">
                     {AVAILABLE_TAGS.map((tag) => {

@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation';
 import Navbar from '../../../components/Navbar';
 import Link from 'next/link';
 import RemoveFromListAction from './RemoveFromListAction';
+import DeleteListButton from '../../DeleteListButton';
 
 export default async function ListDetailsPage({ params }: { params: Promise<{ id: string }> }) {
     const { id } = await params;
@@ -14,6 +15,7 @@ export default async function ListDetailsPage({ params }: { params: Promise<{ id
         .select(`
             name,
             description,
+            user_id,
             list_items (
                 added_at,
                 books:book_id (
@@ -27,6 +29,10 @@ export default async function ListDetailsPage({ params }: { params: Promise<{ id
         `)
         .eq('id', id)
         .single();
+    
+    // Check ownership for showing the delete button
+    const { data: { user } } = await supabase.auth.getUser();
+    const isOwner = user?.id === listData?.user_id;
 
     // Hata yönetimi
     if (error || !listData) {
@@ -51,9 +57,14 @@ export default async function ListDetailsPage({ params }: { params: Promise<{ id
 
                     {/* Liste Üst Bilgisi */}
                     <div style={{ marginBottom: '40px', borderBottom: '3px solid #9a0e20', paddingBottom: '20px' }}>
-                        <Link href="/profile" style={{ color: '#9a0e20', textDecoration: 'none', fontWeight: 'bold', fontSize: '0.9rem' }}>
-                            ← PROFİLE DÖN
-                        </Link>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <Link href="/profile" style={{ color: '#9a0e20', textDecoration: 'none', fontWeight: 'bold', fontSize: '0.9rem' }}>
+                                ← PROFİLE DÖN
+                            </Link>
+                            {isOwner && (
+                                <DeleteListButton listId={id} listName={listData.name} redirectAfterDelete={true} />
+                            )}
+                        </div>
                         <h1 style={{ fontSize: '2.8rem', marginTop: '15px', marginBottom: '10px', color: '#1a1a1a' }}>{listData.name}</h1>
                         <p style={{ color: '#555', fontSize: '1.2rem', lineHeight: '1.6' }}>
                             {listData.description || "Bu koleksiyon için bir açıklama girilmemiş."}

@@ -25,3 +25,29 @@ export async function createBookList(formData: FormData) {
 
     revalidatePath('/profile');
 }
+
+export async function deleteBookList(listId: string) {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+
+    if (!user) throw new Error("Oturum açmanız gerekiyor.");
+
+    // First ensure the user owns this list before deleting
+    const { data: list, error: fetchError } = await supabase
+        .from('book_lists')
+        .select('user_id')
+        .eq('id', listId)
+        .single();
+        
+    if (fetchError || !list) throw new Error("Liste bulunamadı.");
+    if (list.user_id !== user.id) throw new Error("Bu listeyi silme yetkiniz yok.");
+
+    const { error: deleteError } = await supabase
+        .from('book_lists')
+        .delete()
+        .eq('id', listId);
+
+    if (deleteError) throw deleteError;
+
+    revalidatePath('/profile');
+}
