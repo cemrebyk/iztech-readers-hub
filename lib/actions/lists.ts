@@ -3,25 +3,45 @@
 import { createClient } from '../supabase-server';
 import { revalidatePath } from 'next/cache';
 
+const ALLOWED_LIST_NAMES = [
+    "📚 To Be Read",
+    "✅ Read",
+    "⭐ Favorites",
+    "👍 Recommended",
+    "🚫 DNF (Did Not Finish)",
+    "🎓 Academic-Related",
+    "🔄 Currently Reading",
+    "🎁 Wishlist",
+    "📖 Book Club Picks",
+    "🌟 All-Time Greats",
+];
+
 export async function createBookList(formData: FormData) {
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
 
-    if (!user) throw new Error("Oturum açmanız gerekiyor.");
+    if (!user) throw new Error("You must be logged in.");
 
     const name = formData.get("name") as string;
-    const description = formData.get("description") as string;
 
-    // KRİTİK KONTROL: İsim boşsa veya sadece boşluktan oluşuyorsa işlemi durdur
     if (!name || name.trim().length === 0) {
-        throw new Error("Liste adı boş bırakılamaz.");
+        return { error: "Please select a list type." };
+    }
+
+    if (!ALLOWED_LIST_NAMES.includes(name.trim())) {
+        return { error: "Invalid list name." };
     }
 
     const { error } = await supabase
         .from('book_lists')
-        .insert([{ user_id: user.id, name: name.trim(), description: description?.trim() }]);
+        .insert([{ user_id: user.id, name: name.trim() }]);
 
-    if (error) throw error;
+    if (error) {
+        if (error.code === '23505') {
+            return { error: "You already have a list with this name." };
+        }
+        return { error: error.message };
+    }
 
     revalidatePath('/profile');
 }

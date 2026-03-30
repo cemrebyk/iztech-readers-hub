@@ -63,7 +63,7 @@ export default async function ProfilePage() {
                     <div style={{ background: 'white', padding: '30px', borderRadius: '15px', boxShadow: '0 4px 15px rgba(0,0,0,0.05)', marginBottom: '30px' }}>
                         <h2 style={{ marginBottom: '20px', borderBottom: '2px solid #eee', paddingBottom: '10px' }}>📌 Okuma Listelerim</h2>
 
-                        <CreateListForm />
+                        <CreateListForm existingListNames={userLists.map((l: any) => l.name)} />
 
                         <div style={{ display: 'grid', gap: '15px', marginTop: '20px' }}>
                             {userLists.map((list: any) => (
@@ -88,9 +88,6 @@ export default async function ProfilePage() {
                                         }}>
                                             <div>
                                                 <h4 style={{ margin: 0, color: '#9a0e20', fontSize: '1.2rem' }}>{list.name}</h4>
-                                                <p style={{ margin: '5px 0 0 0', fontSize: '0.95rem', color: '#666' }}>
-                                                    {list.description || "Açıklama yok."}
-                                                </p>
                                             </div>
                                             <div style={{ color: '#9a0e20', fontSize: '1.2rem' }}>
                                                 →

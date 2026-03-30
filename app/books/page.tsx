@@ -4,11 +4,12 @@ import SearchBox from './SearchBox'
 import CatalogResults from './CatalogResults'
 import CategoryFilter from './CategoryFilter'
 import Navbar from '../components/Navbar'
+import { getBookCover } from '../../lib/googleBooks' // lib/googleBooks.ts içine yazdığımız fonksiyon
 
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
 
-// Orijinal kapak renkleri paleti
+// Orijinal kapak renkleri paleti (Fallback olarak kullanılacak)
 const coverGradients = [
     "linear-gradient(135deg, #9a0e20 0%, #6b0a17 100%)",
     "linear-gradient(135deg, #c9a227 0%, #8b7119 100%)",
@@ -29,16 +30,16 @@ export default async function BooksPage(props: { searchParams: Promise<{ q?: str
 
     const supabase = await createClient();
 
-    // Fetch all books (we need them all to compute category counts)
+    // 1. Veritabanından kitapları çek (Kategori sayımı için hepsi lazım)
     let allBooksQuery = supabase.from('books').select('*');
     if (q) {
         allBooksQuery = allBooksQuery.or(`title.ilike.%${q}%,author.ilike.%${q}%`);
     }
     const { data: allBooks, error } = await allBooksQuery;
 
-    if (error) console.error("Hata:", error)
+    if (error) console.error("Veritabanı Hatası:", error);
 
-    // Extract distinct categories with counts from the fetched books
+    // 2. Kategori haritasını oluştur
     const categoryMap: Record<string, number> = {};
     allBooks?.forEach((book) => {
         const genre = book.genre?.trim();
@@ -50,20 +51,24 @@ export default async function BooksPage(props: { searchParams: Promise<{ q?: str
         .map(([name, count]) => ({ name, count }))
         .sort((a, b) => a.name.localeCompare(b.name));
 
-    // Filter by selected category
-    const books = category
+    // 3. Seçili kategoriye göre filtrele
+    const filteredBooks = category
         ? allBooks?.filter((book) => book.genre?.trim() === category)
         : allBooks;
 
-    // Collect DB book titles for deduplication in catalog results
+    // 4. MÜHENDİSLİK DOKUNUŞU: Google API üzerinden kapakları paralel olarak çek
+    // ISBN varsa ISBN, yoksa Title+Author araması yapar
+    const books = filteredBooks ? await Promise.all(filteredBooks.map(async (book) => {
+        const coverUrl = await getBookCover(book.isbn, book.title, book.author);
+        return { ...book, coverUrl };
+    })) : [];
+
     const dbBookTitles = allBooks?.map((book) => book.title) || [];
 
     return (
         <>
-            {/* Navigation */}
             <Navbar />
 
-            {/* Page Header */}
             <header className="page-header">
                 <div className="container">
                     <h1>Browse <span className="highlight">Books</span></h1>
@@ -71,12 +76,10 @@ export default async function BooksPage(props: { searchParams: Promise<{ q?: str
                 </div>
             </header>
 
-            {/* Main Content */}
             <main className="books-main">
                 <div className="container">
                     <div className="books-layout">
 
-                        {/* Sidebar */}
                         <aside className="books-sidebar">
                             <div className="sidebar-section">
                                 <h3>🔍 Search</h3>
@@ -95,10 +98,9 @@ export default async function BooksPage(props: { searchParams: Promise<{ q?: str
                             <CategoryFilter categories={categories} totalBooks={allBooks?.length || 0} />
                         </aside>
 
-                        {/* Book Grid Area */}
                         <section className="books-content">
                             <div className="content-header">
-                                <p className="results-count">Showing <strong>{books?.length || 0} books</strong></p>
+                                <p className="results-count">Showing <strong>{books.length} books</strong></p>
                                 <div className="sort-options">
                                     <label htmlFor="sort-select">Sort by:</label>
                                     <select id="sort-select" className="sort-select">
@@ -109,12 +111,20 @@ export default async function BooksPage(props: { searchParams: Promise<{ q?: str
                             </div>
 
                             <div className="books-grid" id="books-grid">
-                                {books?.map((book, index) => (
+                                {books.map((book, index) => (
                                     <article key={book.id} className="book-card" data-category={book.genre?.toLowerCase()}>
 
-                                        <div className="book-cover" style={{ background: coverGradients[index % coverGradients.length] }}>
+                                        {/* KAPAK ALANI: API'den resim geldiyse bas, gelmediyse gradyan ve yazı göster */}
+                                        <div
+                                            className="book-cover"
+                                            style={{
+                                                background: book.coverUrl
+                                                    ? `url(${book.coverUrl}) center/cover no-repeat`
+                                                    : coverGradients[index % coverGradients.length]
+                                            }}
+                                        >
                                             <span className="book-spine"></span>
-                                            <div className="book-title-cover">{book.title}</div>
+                                            {!book.coverUrl && <div className="book-title-cover">{book.title}</div>}
                                         </div>
 
                                         <div className="book-info">
@@ -123,7 +133,13 @@ export default async function BooksPage(props: { searchParams: Promise<{ q?: str
 
                                             <div className="book-meta" style={{ flexDirection: 'column', alignItems: 'flex-start', gap: '8px' }}>
                                                 <div style={{ display: 'flex', alignItems: 'center', width: '100%' }}>
-                                                    <RefreshButton bookId={book.id} isbn={book.isbn || undefined} title={book.title} initialTitle={book.title} />
+                                                    {/* ISBN ve Yenileme Butonu */}
+                                                    <RefreshButton
+                                                        bookId={book.id}
+                                                        isbn={book.isbn || undefined}
+                                                        title={book.title}
+                                                        initialTitle={book.title}
+                                                    />
                                                 </div>
                                                 <span className="book-reviews" style={{ fontSize: '0.8rem' }}>📍 {book.shelf_location}</span>
                                             </div>
@@ -144,7 +160,7 @@ export default async function BooksPage(props: { searchParams: Promise<{ q?: str
                                 ))}
                             </div>
 
-                            {/* Catalog Results (from IYTE Library API) */}
+                            {/* İYTE Katalog Sonuçları (API'den çekilen ek veriler) */}
                             <CatalogResults dbBookTitles={dbBookTitles} />
                         </section>
                     </div>

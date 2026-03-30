@@ -4,6 +4,7 @@ import Navbar from '../../components/Navbar';
 import AddToListAction from './AddToListAction';
 import ReviewForm from './ReviewForm';
 import RefreshButton from '../RefreshButton';
+import { getBookCover } from '../../../lib/googleBooks'; // Önceki adımda oluşturduğumuz yardımcı fonksiyon
 
 export default async function BookDetailsPage({ params }: { params: Promise<{ id: string }> }) {
 
@@ -14,7 +15,7 @@ export default async function BookDetailsPage({ params }: { params: Promise<{ id
 
     const { data: { user } } = await supabase.auth.getUser();
 
-    // Fetch book, user lists, and reviews in parallel
+    // 1. Veritabanı sorgularını paralel olarak başlatıyoruz
     const [bookRes, listsRes, reviewsRes, userReviewRes] = await Promise.all([
         supabase.from('books').select('*').eq('id', bookId).single(),
         user ? supabase.from('book_lists').select('id, name').eq('user_id', user.id) : null,
@@ -31,18 +32,20 @@ export default async function BookDetailsPage({ params }: { params: Promise<{ id
         notFound();
     }
 
-    // Compute average rating from reviews
+    // 2. MÜHENDİSLİK DOKUNUŞU: Kitap verisi geldikten sonra Google'dan kapak resmini çekiyoruz
+    const coverUrl = await getBookCover(book.isbn, book.title, book.author);
+
+    // Rating ve Yıldız hesaplama mantığı (Gelen koddaki gibi korunuyor)
     const avgRating = reviews.length > 0
         ? reviews.reduce((sum: number, r: any) => sum + r.rating, 0) / reviews.length
         : 0;
     const avgRatingDisplay = avgRating > 0 ? avgRating.toFixed(1) : '—';
 
-    // Generate star display
     const fullStars = Math.floor(avgRating);
     const hasHalfStar = avgRating - fullStars >= 0.5;
     const starsDisplay = '★'.repeat(fullStars) + (hasHalfStar ? '★' : '') + '☆'.repeat(5 - fullStars - (hasHalfStar ? 1 : 0));
 
-    // Aggregate tag counts from all reviews
+    // Tag counts ve sorting mantığı
     const tagCounts: Record<string, number> = {};
     reviews.forEach((r: any) => {
         (r.tags || []).forEach((tag: string) => {
@@ -65,7 +68,8 @@ export default async function BookDetailsPage({ params }: { params: Promise<{ id
                             {/* Left: Book Cover */}
                             <div className="book-cover-large">
                                 <div className="book-cover-inner" style={{
-                                    background: coverGradient,
+                                    // Eğer coverUrl varsa resmi bas, yoksa gradyanı kullan
+                                    background: coverUrl ? `url(${coverUrl}) center/cover no-repeat` : coverGradient,
                                     height: '500px',
                                     borderRadius: '10px 20px 20px 10px',
                                     boxShadow: '20px 20px 60px rgba(0,0,0,0.2)',
@@ -83,9 +87,12 @@ export default async function BookDetailsPage({ params }: { params: Promise<{ id
                                         background: 'rgba(0,0,0,0.2)',
                                         borderRadius: '2px'
                                     }}></span>
-                                    <div className="book-title-cover-large" style={{ color: 'white', padding: '40px', textAlign: 'center', fontWeight: 'bold', fontSize: '1.8rem', textTransform: 'uppercase' }}>
-                                        {book.title}
-                                    </div>
+                                    {/* Sadece kapak resmi YOKSA başlığı kapağın üzerine yaz */}
+                                    {!coverUrl && (
+                                        <div className="book-title-cover-large" style={{ color: 'white', padding: '40px', textAlign: 'center', fontWeight: 'bold', fontSize: '1.8rem', textTransform: 'uppercase' }}>
+                                            {book.title}
+                                        </div>
+                                    )}
                                 </div>
                             </div>
 
@@ -100,7 +107,6 @@ export default async function BookDetailsPage({ params }: { params: Promise<{ id
                                     {book.author}
                                 </p>
 
-                                {/* Live Rating Display */}
                                 <div className="rating-section" style={{ display: 'flex', gap: '20px', alignItems: 'center', marginBottom: '30px' }}>
                                     <div className="stars" style={{ fontSize: '1.5rem', color: '#FFD700' }}>{starsDisplay}</div>
                                     <span className="rating-score"><strong>{avgRatingDisplay}</strong> / 5.0</span>
@@ -146,7 +152,7 @@ export default async function BookDetailsPage({ params }: { params: Promise<{ id
                                     <p style={{ margin: '5px 0' }}><strong>ISBN:</strong> {book.isbn}</p>
                                 </div>
 
-                                {/* Add to List */}
+                                {/* Add to List Action Area */}
                                 <div style={{ marginTop: '30px' }}>
                                     {user ? (
                                         <div style={{ maxWidth: '400px' }}>
@@ -165,11 +171,9 @@ export default async function BookDetailsPage({ params }: { params: Promise<{ id
                     </div>
                 </section>
 
-                {/* Review Section */}
+                {/* Review Section (Forms and History) */}
                 <section style={{ padding: '50px 0', background: 'var(--color-cream)' }}>
                     <div className="container" style={{ maxWidth: '900px' }}>
-
-                        {/* Review Form */}
                         {user ? (
                             <ReviewForm bookId={String(bookId)} hasExistingReview={hasExistingReview} />
                         ) : (
@@ -181,26 +185,25 @@ export default async function BookDetailsPage({ params }: { params: Promise<{ id
                             </div>
                         )}
 
-                        {/* Existing Reviews */}
                         {reviews.length > 0 && (
                             <div style={{ marginTop: '40px' }}>
                                 <h3 style={{ marginBottom: '20px', fontSize: '1.3rem' }}>📝 All Reviews ({reviews.length})</h3>
                                 <div className="reviews-list">
                                     {reviews.map((review: any) => (
-                                        <div key={review.id} className="review-card">
-                                            <div className="review-card-header">
-                                                <div className="review-card-stars">
+                                        <div key={review.id} className="review-card" style={{ background: 'white', padding: '20px', borderRadius: '10px', marginBottom: '15px', border: '1px solid #eee' }}>
+                                            <div className="review-card-header" style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px' }}>
+                                                <div className="review-card-stars" style={{ color: '#FFD700' }}>
                                                     {'★'.repeat(review.rating)}{'☆'.repeat(5 - review.rating)}
                                                 </div>
-                                                <span className="review-card-date">
+                                                <span className="review-card-date" style={{ color: '#999', fontSize: '0.85rem' }}>
                                                     {new Date(review.created_at).toLocaleDateString('en-US', {
                                                         year: 'numeric', month: 'short', day: 'numeric'
                                                     })}
                                                 </span>
                                             </div>
-                                            <div className="review-card-tags">
+                                            <div className="review-card-tags" style={{ display: 'flex', flexWrap: 'wrap', gap: '5px' }}>
                                                 {(review.tags || []).map((tag: string) => (
-                                                    <span key={tag} className="review-tag">{tag}</span>
+                                                    <span key={tag} className="review-tag" style={{ background: '#f0f0f0', padding: '2px 8px', borderRadius: '4px', fontSize: '0.75rem' }}>#{tag}</span>
                                                 ))}
                                             </div>
                                         </div>
