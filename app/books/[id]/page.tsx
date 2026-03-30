@@ -128,7 +128,7 @@ export default async function BookDetailsPage({ params }: { params: Promise<{ id
                                 <div className="shelf-info" style={{ background: 'white', padding: '25px', borderRadius: '15px', border: '1px solid #e0e0e0', boxShadow: '0 4px 12px rgba(0,0,0,0.05)', marginBottom: '30px' }}>
                                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '15px', borderBottom: '1px solid #eee', paddingBottom: '10px' }}>
                                         <h3 style={{ margin: 0 }}>Library Availability</h3>
-                                        <RefreshButton bookId={String(bookId)} isbn={book.isbn || undefined} title={book.title} initialTitle={book.title} />
+                                        <RefreshButton bookId={String(bookId)} isbn={book.isbn || undefined} title={book.title} initialTitle={book.title} style={{ margin: 0 }} />
                                     </div>
                                     <div style={{ display: 'flex', alignItems: 'center', gap: '15px', marginBottom: '15px' }}>
                                         <span style={{

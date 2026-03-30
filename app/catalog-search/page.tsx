@@ -1,6 +1,7 @@
 // app/catalog-search/page.tsx
 import Navbar from '../components/Navbar';
 import { redirect } from 'next/navigation';
+import CheckAvailabilityPopup from './CheckAvailabilityPopup';
 
 export const dynamic = 'force-dynamic';
 
@@ -119,27 +120,21 @@ export default async function CatalogSearchPage({ searchParams }: { searchParams
                                                 <p style={{ margin: '0 0 5px 0', color: '#666' }}>Yazar: {book.author || 'Bilinmiyor'}</p>
                                                 <p style={{ margin: '0 0 15px 0', color: '#888', fontSize: '14px' }}>Yıl: {book.yearOfPublication || 'Bilinmiyor'}</p>
 
-                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 'auto' }}>
+                                                <div style={{ display: 'flex', flexDirection: 'column', gap: '15px', marginTop: 'auto' }}>
                                                     <span style={{
                                                         fontSize: '12px',
                                                         padding: '4px 8px',
                                                         borderRadius: '4px',
                                                         backgroundColor: '#f5f5f5',
-                                                        fontFamily: 'monospace'
+                                                        fontFamily: 'monospace',
+                                                        alignSelf: 'flex-start'
                                                     }}>
                                                         Raf: {book.callNumber}
                                                     </span>
 
-                                                    <span style={{
-                                                        fontSize: '12px',
-                                                        fontWeight: 'bold',
-                                                        padding: '4px 8px',
-                                                        borderRadius: '4px',
-                                                        backgroundColor: isAvailable ? '#d4edda' : '#f8d7da',
-                                                        color: isAvailable ? '#155724' : '#721c24'
-                                                    }}>
-                                                        {isAvailable ? '✅ Rafta Mevcut' : '⏳ Ödünçte'}
-                                                    </span>
+                                                    <div style={{ display: 'flex', justifyContent: 'center', width: '100%' }}>
+                                                        <CheckAvailabilityPopup title={book.title} isAvailable={isAvailable} />
+                                                    </div>
                                                 </div>
                                             </div>
                                         );

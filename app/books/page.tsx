@@ -123,10 +123,6 @@ export default async function BooksPage(props: { searchParams: Promise<{ q?: str
 
                                             <div className="book-meta" style={{ flexDirection: 'column', alignItems: 'flex-start', gap: '8px' }}>
                                                 <div style={{ display: 'flex', alignItems: 'center', width: '100%' }}>
-                                                    <span className={`tag ${book.is_available ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`} style={{ fontWeight: 'bold' }}>
-                                                        {book.is_available ? '📍 Rafta' : '⏳ Ödünçte'}
-                                                    </span>
-
                                                     <RefreshButton bookId={book.id} isbn={book.isbn || undefined} title={book.title} initialTitle={book.title} />
                                                 </div>
                                                 <span className="book-reviews" style={{ fontSize: '0.8rem' }}>📍 {book.shelf_location}</span>

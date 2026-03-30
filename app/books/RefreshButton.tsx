@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 
-export default function RefreshButton({ bookId, isbn, title, initialTitle }: { bookId: any, isbn?: string, title?: string, initialTitle: string }) {
+export default function RefreshButton({ bookId, isbn, title, initialTitle, style }: { bookId: any, isbn?: string, title?: string, initialTitle: string, style?: React.CSSProperties }) {
     const [loading, setLoading] = useState(false)
 
     const handleRefresh = async () => {
@@ -27,7 +27,6 @@ export default function RefreshButton({ bookId, isbn, title, initialTitle }: { b
 
             if (data.db_updated) {
                 alert(`"${initialTitle}" availability updated!\n\nStatus: ${data.is_available ? 'Available on Shelf ✅' : 'Currently Borrowed ⏳'}`)
-                window.location.reload()
             } else if (data.error) {
                 alert(`Could not check: ${data.error}`)
             } else {
@@ -58,7 +57,8 @@ export default function RefreshButton({ bookId, isbn, title, initialTitle }: { b
                 borderRadius: '9999px',
                 cursor: loading ? 'wait' : 'pointer',
                 transition: 'all 0.2s ease',
-                marginLeft: 'auto'
+                margin: '0 auto',
+                ...style
             }}
             title="Check live availability"
         >

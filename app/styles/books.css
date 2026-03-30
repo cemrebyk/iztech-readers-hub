@@ -35,10 +35,31 @@
 .books-sidebar {
     position: sticky;
     top: 100px;
+    max-height: calc(100vh - 120px);
+    overflow-y: auto;
     background: var(--color-white);
     border: 1px solid var(--color-sepia);
     border-radius: var(--radius-lg);
     padding: var(--space-lg);
+    scrollbar-width: thin;
+    scrollbar-color: var(--color-sepia) transparent;
+}
+
+.books-sidebar::-webkit-scrollbar {
+    width: 6px;
+}
+
+.books-sidebar::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.books-sidebar::-webkit-scrollbar-thumb {
+    background-color: var(--color-sepia);
+    border-radius: 3px;
+}
+
+.books-sidebar::-webkit-scrollbar-thumb:hover {
+    background-color: var(--color-text-muted);
 }
 
 .sidebar-section {

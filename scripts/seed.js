@@ -26,11 +26,11 @@ async function processBook(row) {
 
     if (existingBook) {
         console.log(`⏭️ Zaten veritabanımızda var, atlanıyor.`);
-        return;
+        return 'EXISTING'; // İstatistik için durum döndürüyoruz
     }
 
     // 1. ADIM: KÜTÜPHANE API'SİNDE ARA
-    const searchUrl = `http://catalog-db.iyte.edu.tr:8080/symws/rest/standard/searchCatalog?clientID=DS_CLIENT&term1="${encodeURIComponent(title)}"&hitsToDisplay=5&includeAvailabilityInfo=true&json=true`;
+    const searchUrl = `http://catalog-db.iyte.edu.tr:8080/symws/rest/standard/searchCatalog?clientID=DS_CLIENT&term1="${encodeURIComponent(title)}"&hitsToDisplay=30&includeAvailabilityInfo=true&json=true`;
 
     try {
         const searchRes = await fetch(searchUrl);
@@ -38,7 +38,7 @@ async function processBook(row) {
 
         if (!searchData.HitlistTitleInfo) {
             console.log(`❌ İYTE'de bulunamadı.`);
-            return;
+            return 'REJECTED';
         }
 
         // 🚨 PARANOYAK GÜMRÜK MEMURU (FİLTRE) 🚨
@@ -51,17 +51,14 @@ async function processBook(row) {
             if (!isPhysical) return false;
 
             // B) Yazar Gerçekten Eşleşiyor Mu?
-            const libAuthor = (b.author || "").toLowerCase(); // Kütüphanedeki yazar
-            const csvAuthor = author.toLowerCase(); // CSV'deki yazar
+            const libAuthor = (b.author || "").toLowerCase();
+            const csvAuthor = author.toLowerCase();
 
-            if (!libAuthor) return false; // Yazar bilgisi yoksa risk alma, reddet!
+            if (!libAuthor) return false;
 
-            // CSV yazarının soyadını al (Örn: "George Orwell" -> "orwell")
-            // Noktalama işaretlerini temizle ki "J.K." gibi şeyler sorun yaratmasın
             const authorParts = csvAuthor.split(' ');
             const lastName = authorParts[authorParts.length - 1].replace(/[^a-zğüşıöç]/gi, '');
 
-            // Kütüphaneden gelen yazar bilgisinin içinde bu soyadı geçiyor mu?
             const isAuthorMatch = libAuthor.includes(lastName);
 
             return isAuthorMatch;
@@ -69,7 +66,7 @@ async function processBook(row) {
 
         if (!physicalBook) {
             console.log(`⚠️ Sahte eşleşme veya sadece E-Kitap. Reddedildi.`);
-            return;
+            return 'REJECTED';
         }
 
         console.log(`✅ Doğru yazar ve fiziksel kitap eşleşti! Detaylar çekiliyor...`);
@@ -102,6 +99,10 @@ async function processBook(row) {
 
         const isAvailableNow = physicalBook.titleAvailabilityInfo?.totalCopiesAvailable > 0;
 
+        // Raf Numarasını Temizle (|B, |A gibi MARC hatalarını uçurur)
+        const rawCallNumber = physicalBook.callNumber || "";
+        const cleanShelfLocation = rawCallNumber.replace(/\|[a-zA-Z]/g, '').replace(/\s+/g, ' ').trim();
+
         // 3. ADIM: SUPABASE'E KAYDET
         const { error } = await supabase
             .from('books')
@@ -111,37 +112,66 @@ async function processBook(row) {
                 isbn: cleanIsbn,
                 genre: csvGenres[0] || "General",
                 tags: combinedTags,
-                shelf_location: physicalBook.callNumber,
+                shelf_location: cleanShelfLocation,
                 is_available: isAvailableNow
             });
 
         if (error) {
             console.error(`🔴 Kayıt Hatası:`, error.message);
+            return 'ERROR';
         } else {
             console.log(`💾 Supabase'e başarıyla EKLENDİ.`);
+            return 'ADDED';
         }
 
     } catch (error) {
         console.error(`💥 Hata oluştu:`, error.message);
+        return 'ERROR';
     }
 }
 
 async function runSeeder() {
-    console.log("🚀 Güvenlikli Tohumlama Operasyonu Başlıyor...\n");
+    console.log("🚀 Güvenlikli ve Metrikli Tohumlama Operasyonu Başlıyor...\n");
     const booksToProcess = [];
 
-    fs.createReadStream('books3.csv')
+    // İstatistik objemiz
+    const stats = {
+        totalProcessed: 0,
+        alreadyExists: 0,
+        addedSuccessfully: 0,
+        rejectedOrNotFound: 0,
+        errors: 0
+    };
+
+    fs.createReadStream('classics-large_3.csv')
         .pipe(csv())
         .on('data', (data) => booksToProcess.push(data))
         .on('end', async () => {
             console.log(`📋 CSV dosyasından ${booksToProcess.length} kitap okundu. İstekler başlıyor...\n`);
 
             for (const row of booksToProcess) {
-                await processBook(row);
+                stats.totalProcessed++;
+                const status = await processBook(row);
+
+                // Sonuca göre sayacı artır
+                if (status === 'ADDED') stats.addedSuccessfully++;
+                else if (status === 'EXISTING') stats.alreadyExists++;
+                else if (status === 'REJECTED') stats.rejectedOrNotFound++;
+                else if (status === 'ERROR') stats.errors++;
+
                 await delay(3000); // Kütüphaneyi yormamak için 3 saniye bekle
             }
 
-            console.log("\n🎉 Tüm tohumlama işlemi başarıyla tamamlandı!");
+            // Mükemmel Final Raporu
+            console.log(`\n===========================================`);
+            console.log(`🎉 TOHUMLAMA (SEEDING) İŞLEMİ TAMAMLANDI 🎉`);
+            console.log(`===========================================`);
+            console.log(`📊 Toplam İşlenen Kitap : ${stats.totalProcessed}`);
+            console.log(`⏭️ Zaten Veritabanında  : ${stats.alreadyExists}`);
+            console.log(`✅ Yeni Eklenen (Hit)   : ${stats.addedSuccessfully}`);
+            console.log(`⚠️ Bulunamayan/Reddedilen: ${stats.rejectedOrNotFound}`);
+            console.log(`💥 Hata Alanlar         : ${stats.errors}`);
+            console.log(`===========================================\n`);
         });
 }
 

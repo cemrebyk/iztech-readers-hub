@@ -139,9 +139,30 @@ export default function CatalogResults({ dbBookTitles }: CatalogResultsProps) {
 
                                         <div className="book-meta" style={{ flexDirection: 'column', alignItems: 'flex-start', gap: '8px' }}>
                                             <div style={{ display: 'flex', alignItems: 'center', width: '100%' }}>
-                                                <span className={`tag ${isAvailable ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`} style={{ fontWeight: 'bold' }}>
-                                                    {isAvailable ? '📍 Rafta' : '⏳ Ödünçte'}
-                                                </span>
+                                                <button
+                                                    onClick={(e) => {
+                                                        e.preventDefault();
+                                                        alert(`"${book.title}" availability status:\n\nStatus: ${isAvailable ? 'Available on Shelf ✅' : 'Currently Borrowed ⏳'}`);
+                                                    }}
+                                                    style={{
+                                                        display: 'inline-flex',
+                                                        alignItems: 'center',
+                                                        gap: '4px',
+                                                        padding: '2px 8px',
+                                                        fontSize: '0.75rem',
+                                                        fontWeight: 'bold',
+                                                        backgroundColor: '#ffffff',
+                                                        color: 'var(--color-primary)',
+                                                        border: '1px solid var(--color-primary)',
+                                                        borderRadius: '9999px',
+                                                        cursor: 'pointer',
+                                                        transition: 'all 0.2s ease',
+                                                        margin: '0 auto'
+                                                    }}
+                                                    title="Check live availability"
+                                                >
+                                                    🔄 Check Availability
+                                                </button>
                                             </div>
                                             <span className="book-reviews" style={{ fontSize: '0.8rem' }}>📍 {book.callNumber}</span>
                                         </div>
