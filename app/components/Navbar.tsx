@@ -11,8 +11,8 @@ export default function Navbar() {
     useEffect(() => {
         // 1. Sayfa yüklendiğinde oturum açmış biri var mı diye kontrol et
         const checkUser = async () => {
-            const { data: { session } } = await supabase.auth.getSession()
-            setUser(session?.user || null)
+            const { data: { user } } = await supabase.auth.getUser()
+            setUser(user)
         }
         checkUser()
 

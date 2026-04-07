@@ -4,7 +4,7 @@ import Navbar from '../../components/Navbar';
 import AddToListAction from './AddToListAction';
 import ReviewForm from './ReviewForm';
 import RefreshButton from '../RefreshButton';
-import { getBookCover } from '../../../lib/googleBooks'; // Önceki adımda oluşturduğumuz yardımcı fonksiyon
+import { getBookCover } from '../../../lib/bookCover'; // Önceki adımda oluşturduğumuz yardımcı fonksiyon
 
 export default async function BookDetailsPage({ params }: { params: Promise<{ id: string }> }) {
 
@@ -113,20 +113,55 @@ export default async function BookDetailsPage({ params }: { params: Promise<{ id
                                     <span className="review-count" style={{ color: '#666' }}>({reviews.length} {reviews.length === 1 ? 'review' : 'reviews'})</span>
                                 </div>
 
-                                {/* Tag Summary */}
-                                {sortedTags.length > 0 && (
-                                    <div className="review-tags-summary" style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '25px' }}>
-                                        {sortedTags.map(([tag, count]) => (
-                                            <span key={tag} className="tag" style={{
-                                                background: 'var(--color-sepia-light)',
-                                                padding: '4px 12px',
+                                {/* Main Book Genre & Sub-tags */}
+                                {(book.genre || (book.tags && book.tags.length > 0)) && (
+                                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '25px' }}>
+                                        {book.genre && book.genre !== 'General' && (
+                                            <span style={{
+                                                background: 'var(--color-primary, #9a0e20)',
+                                                color: 'white',
+                                                padding: '6px 14px',
+                                                borderRadius: '20px',
+                                                fontSize: '0.85rem',
+                                                fontWeight: 'bold',
+                                                textTransform: 'uppercase',
+                                                letterSpacing: '0.5px'
+                                            }}>
+                                                {book.genre}
+                                            </span>
+                                        )}
+                                        {(book.tags || []).map((tag: string) => (
+                                            <span key={`book-tag-${tag}`} style={{
+                                                background: 'var(--color-sepia-light, #f5f0e8)',
+                                                color: '#333',
+                                                padding: '6px 14px',
                                                 borderRadius: '20px',
                                                 fontSize: '0.85rem',
                                                 fontWeight: 500,
                                             }}>
-                                                {tag} <strong style={{ color: 'var(--color-primary)' }}>×{count}</strong>
+                                                #{tag}
                                             </span>
                                         ))}
+                                    </div>
+                                )}
+
+                                {/* Tag Summary */}
+                                {sortedTags.length > 0 && (
+                                    <div className="review-tags-summary" style={{ marginBottom: '30px' }}>
+                                        <h4 style={{ fontSize: '0.9rem', color: '#666', borderBottom: '1px solid #eee', paddingBottom: '5px', marginBottom: '10px' }}>Community Highlights</h4>
+                                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                                            {sortedTags.map(([tag, count]) => (
+                                                <span key={tag} className="tag" style={{
+                                                    background: '#eee',
+                                                    padding: '4px 12px',
+                                                    borderRadius: '20px',
+                                                    fontSize: '0.8rem',
+                                                    fontWeight: 500,
+                                                }}>
+                                                    {tag} <strong style={{ color: 'var(--color-primary)' }}>×{count}</strong>
+                                                </span>
+                                            ))}
+                                        </div>
                                     </div>
                                 )}
 

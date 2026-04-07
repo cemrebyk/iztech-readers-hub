@@ -4,7 +4,7 @@ import SearchBox from './SearchBox'
 import CatalogResults from './CatalogResults'
 import CategoryFilter from './CategoryFilter'
 import Navbar from '../components/Navbar'
-import { getBookCover } from '../../lib/googleBooks' // lib/googleBooks.ts içine yazdığımız fonksiyon
+import { getBookCover } from '../../lib/bookCover' // lib/googleBooks.ts içine yazdığımız fonksiyon
 
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
@@ -35,7 +35,26 @@ export default async function BooksPage(props: { searchParams: Promise<{ q?: str
     if (q) {
         allBooksQuery = allBooksQuery.or(`title.ilike.%${q}%,author.ilike.%${q}%`);
     }
-    const { data: allBooks, error } = await allBooksQuery;
+    let { data: allBooks, error } = await allBooksQuery;
+
+    // JWT expired fallback: If the user's session expired, their cookie sends an invalid token.
+    // We catch this and retry the fetch as an anonymous user since the books table is public.
+    if (error && error.code === 'PGRST303') {
+        const { createServerClient } = await import('@supabase/ssr');
+        const anonSupabase = createServerClient(
+            process.env.NEXT_PUBLIC_SUPABASE_URL!,
+            process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+            { cookies: { getAll() { return []; }, setAll() { } } }
+        );
+
+        let fallbackQuery = anonSupabase.from('books').select('*');
+        if (q) {
+            fallbackQuery = fallbackQuery.or(`title.ilike.%${q}%,author.ilike.%${q}%`);
+        }
+        const fallbackRes = await fallbackQuery;
+        allBooks = fallbackRes.data;
+        error = fallbackRes.error;
+    }
 
     if (error) console.error("Veritabanı Hatası:", error);
 
