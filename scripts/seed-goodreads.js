@@ -33,7 +33,7 @@ async function processGoodreadsBook(row) {
     }
 
     // 1. ADIM: KÜTÜPHANE API'SİNDE ARA
-    const searchUrl = `http://catalog-db.iyte.edu.tr:8080/symws/rest/standard/searchCatalog?clientID=DS_CLIENT&term1="${encodeURIComponent(cleanTitle)}"&hitsToDisplay=5&includeAvailabilityInfo=true&json=true`;
+    const searchUrl = `http://catalog-db.iyte.edu.tr:8080/symws/rest/standard/searchCatalog?clientID=DS_CLIENT&term1="${encodeURIComponent(cleanTitle)}"&hitsToDisplay=30&includeAvailabilityInfo=true&json=true`;
 
     try {
         const searchRes = await fetch(searchUrl);

@@ -5,6 +5,7 @@ import CatalogResults from './CatalogResults'
 import CategoryFilter from './CategoryFilter'
 import Navbar from '../components/Navbar'
 import { getBookCover } from '../../lib/bookCover' // lib/googleBooks.ts içine yazdığımız fonksiyon
+import RateThisButton from './RateThisButton'
 
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
@@ -57,6 +58,16 @@ export default async function BooksPage(props: { searchParams: Promise<{ q?: str
     }
 
     if (error) console.error("Veritabanı Hatası:", error);
+
+    // Fetch user and user's reviewed books
+    const { data: { user } } = await supabase.auth.getUser();
+    let userReviewedBookIds = new Set<string>();
+    if (user) {
+        const { data: userReviews } = await supabase.from('reviews').select('book_id').eq('user_id', user.id);
+        if (userReviews) {
+            userReviewedBookIds = new Set(userReviews.map(r => String(r.book_id)));
+        }
+    }
 
     // 2. Kategori haritasını oluştur
     const categoryMap: Record<string, number> = {};
@@ -171,7 +182,12 @@ export default async function BooksPage(props: { searchParams: Promise<{ q?: str
                                             </div>
 
                                             <div className="book-actions mt-4">
-                                                <button className="btn btn-primary btn-sm">Rate This</button>
+                                                <RateThisButton 
+                                                    bookId={String(book.id)} 
+                                                    bookTitle={book.title} 
+                                                    hasExistingReview={userReviewedBookIds.has(String(book.id))} 
+                                                    isAuth={!!user} 
+                                                />
                                                 <a href={`/books/${book.id}`} className="btn btn-secondary btn-sm">Details</a>
                                             </div>
                                         </div>

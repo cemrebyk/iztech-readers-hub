@@ -505,3 +505,80 @@
         width: 100%;
     }
 }
+
+/* ================================
+   Rate Modal Overlay & Content
+   ================================ */
+.rate-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(4px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    animation: fadeIn 0.3s ease;
+}
+
+.rate-modal-content {
+    background: var(--color-white);
+    width: 90%;
+    max-width: 500px;
+    border-radius: var(--radius-lg);
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+    position: relative;
+    padding: var(--space-2xl);
+    animation: slideUp 0.3s ease;
+    max-height: 90vh;
+    overflow-y: auto;
+}
+
+.rate-modal-close {
+    position: absolute;
+    top: 15px;
+    right: 20px;
+    background: none;
+    border: none;
+    font-size: 2rem;
+    color: var(--color-text-muted);
+    cursor: pointer;
+    line-height: 1;
+    padding: 0;
+    transition: color 0.2s;
+}
+
+.rate-modal-close:hover {
+    color: var(--color-primary);
+}
+
+.rate-modal-header {
+    text-align: center;
+    margin-bottom: var(--space-xl);
+    padding-bottom: var(--space-md);
+    border-bottom: 1px solid var(--color-sepia-light);
+}
+
+.rate-modal-header h3 {
+    font-size: 1.5rem;
+    margin: 0;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes slideUp {
+    from { 
+        opacity: 0;
+        transform: translateY(20px); 
+    }
+    to { 
+        opacity: 1;
+        transform: translateY(0); 
+    }
+}
