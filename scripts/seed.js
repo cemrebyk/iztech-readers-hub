@@ -214,7 +214,7 @@ async function runSeeder() {
     };
 
     // İŞLEYECEĞİN DOSYANIN ADINI BURAYA YAZ:
-    fs.createReadStream('classics-large_12.csv')
+    fs.createReadStream('darkfic_1.csv')
         .pipe(csv())
         .on('data', (data) => booksToProcess.push(data))
         .on('end', async () => {

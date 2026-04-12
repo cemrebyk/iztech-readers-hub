@@ -169,21 +169,9 @@ export default async function BookDetailsPage({ params }: { params: Promise<{ id
                                 <div className="shelf-info" style={{ background: 'white', padding: '25px', borderRadius: '15px', border: '1px solid #e0e0e0', boxShadow: '0 4px 12px rgba(0,0,0,0.05)', marginBottom: '30px' }}>
                                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '15px', borderBottom: '1px solid #eee', paddingBottom: '10px' }}>
                                         <h3 style={{ margin: 0 }}>Library Availability</h3>
-                                        <RefreshButton bookId={String(bookId)} isbn={book.isbn || undefined} title={book.title} initialTitle={book.title} style={{ margin: 0 }} />
                                     </div>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '15px', marginBottom: '15px' }}>
-                                        <span style={{
-                                            padding: '10px 20px',
-                                            borderRadius: '30px',
-                                            fontSize: '0.9rem',
-                                            fontWeight: 'bold',
-                                            background: book.is_available ? '#e6f4ea' : '#fce8e6',
-                                            color: book.is_available ? '#1e7e34' : '#c5221f'
-                                        }}>
-                                            {book.is_available ? '📍 Available on Shelf' : '⏳ Currently Borrowed'}
-                                        </span>
-                                    </div>
-                                    <p style={{ margin: '5px 0' }}><strong>Shelf Location:</strong> <code style={{ background: '#f4f4f4', padding: '2px 6px', borderRadius: '4px' }}>{book.shelf_location}</code></p>
+                                    <RefreshButton bookId={String(bookId)} isbn={book.isbn || undefined} title={book.title} initialTitle={book.title} initialAvailability={book.is_available} style={{ margin: 0 }} />
+                                    <p style={{ margin: '15px 0 5px' }}><strong>Shelf Location:</strong> <code style={{ background: '#f4f4f4', padding: '2px 6px', borderRadius: '4px' }}>{book.shelf_location}</code></p>
                                     <p style={{ margin: '5px 0' }}><strong>ISBN:</strong> {book.isbn}</p>
                                 </div>
 

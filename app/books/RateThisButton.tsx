@@ -3,24 +3,7 @@
 import { useState, useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import { submitReview } from '../../lib/actions/reviews'
-
-const AVAILABLE_TAGS = [
-    "Heavy Language",
-    "Overrated",
-    "Funny",
-    "Cult-Classic",
-    "Page-Turner",
-    "Thought-Provoking",
-    "Easy Read",
-    "Dark",
-    "Emotional",
-    "Underrated",
-    "Boring",
-    "Must-Read",
-    "Academic",
-    "Inspiring",
-    "Confusing",
-]
+import { AVAILABLE_TAGS } from '../../lib/constants/review-tags'
 
 interface RateThisButtonProps {
     bookId: string;
@@ -85,9 +68,9 @@ export default function RateThisButton({ bookId, bookTitle, hasExistingReview: i
         setIsModalOpen(false);
         // Only reset if they haven't submitted yet
         if (!submitted && !initialHasReview) {
-             setRating(0);
-             setSelectedTags([]);
-             setMessage(null);
+            setRating(0);
+            setSelectedTags([]);
+            setMessage(null);
         }
     }
 
@@ -97,7 +80,7 @@ export default function RateThisButton({ bookId, bookTitle, hasExistingReview: i
 
     return (
         <>
-            <button 
+            <button
                 className={`btn btn-sm ${submitted || initialHasReview ? 'btn-secondary' : 'btn-primary'}`}
                 onClick={() => setIsModalOpen(true)}
             >
@@ -108,9 +91,9 @@ export default function RateThisButton({ bookId, bookTitle, hasExistingReview: i
                 <div className="rate-modal-overlay" onClick={resetAndClose} style={{ zIndex: 9999 }}>
                     <div className="rate-modal-content" onClick={e => e.stopPropagation()}>
                         <button className="rate-modal-close" onClick={resetAndClose}>&times;</button>
-                        
+
                         <div className="rate-modal-header">
-                            <h3>Rate <span style={{color: 'var(--color-primary)'}}>{bookTitle}</span></h3>
+                            <h3>Rate <span style={{ color: 'var(--color-primary)' }}>{bookTitle}</span></h3>
                         </div>
 
                         {!isAuth ? (

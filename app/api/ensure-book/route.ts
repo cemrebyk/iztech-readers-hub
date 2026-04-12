@@ -29,6 +29,7 @@ export async function POST(request: Request) {
             return NextResponse.json({ id: existingBooks[0].id, alreadyExisted: true });
         }
 
+        // HERE IS WHERE NEW BOOKS ARE APPENDED TO THE SUPABASE DATABASE
         // Insert new book into database
         const { data: newBook, error } = await supabase
             .from('books')

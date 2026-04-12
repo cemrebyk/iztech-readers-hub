@@ -2,24 +2,7 @@
 
 import { useState } from 'react'
 import { submitReview } from '../../../lib/actions/reviews'
-
-const AVAILABLE_TAGS = [
-    "Heavy Language",
-    "Overrated",
-    "Funny",
-    "Cult-Classic",
-    "Page-Turner",
-    "Thought-Provoking",
-    "Easy Read",
-    "Dark",
-    "Emotional",
-    "Underrated",
-    "Boring",
-    "Must-Read",
-    "Academic",
-    "Inspiring",
-    "Confusing",
-]
+import { AVAILABLE_TAGS } from '../../../lib/constants/review-tags'
 
 interface ReviewFormProps {
     bookId: string

@@ -4,6 +4,7 @@ import Navbar from '../components/Navbar';
 import CreateListForm from './CreateListForm';
 import ReadBooksSection from './ReadBooksSection';
 import DeleteListButton from './DeleteListButton';
+import Recommendations from './Recommendations';
 import Link from 'next/link'; // Navigasyon için eklendi
 
 export default async function ProfilePage() {
@@ -58,6 +59,9 @@ export default async function ProfilePage() {
                     <div style={{ marginBottom: '40px' }}>
                         <ReadBooksSection books={readBooks} />
                     </div>
+
+                    {/* ÖNERILER */}
+                    <Recommendations userId={user.id} />
 
                     {/* OKUMA LİSTELERİ */}
                     <div style={{ background: 'white', padding: '30px', borderRadius: '15px', boxShadow: '0 4px 15px rgba(0,0,0,0.05)', marginBottom: '30px' }}>
