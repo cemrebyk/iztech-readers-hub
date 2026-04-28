@@ -10,6 +10,8 @@ import RateThisButton from './RateThisButton'
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
 
+const PAGE_SIZE = 100;
+
 // Orijinal kapak renkleri paleti (Fallback olarak kullanılacak)
 const coverGradients = [
     "linear-gradient(135deg, #9a0e20 0%, #6b0a17 100%)",
@@ -24,42 +26,103 @@ const coverGradients = [
     "linear-gradient(135deg, #7f5539 0%, #5c3d29 100%)"
 ];
 
-export default async function BooksPage(props: { searchParams: Promise<{ q?: string; category?: string }> }) {
+export default async function BooksPage(props: { searchParams: Promise<{ q?: string; category?: string; page?: string }> }) {
     const searchParams = await props.searchParams;
     const q = searchParams?.q || '';
     const category = searchParams?.category || '';
+    const page = Math.max(1, parseInt(searchParams?.page || '1', 10));
+    const from = (page - 1) * PAGE_SIZE;
+    const to = from + PAGE_SIZE - 1;
 
     const supabase = await createClient();
 
-    // 1. Veritabanından kitapları çek (Kategori sayımı için hepsi lazım)
-    let allBooksQuery = supabase.from('books').select('*');
-    if (q) {
-        allBooksQuery = allBooksQuery.or(`title.ilike.%${q}%,author.ilike.%${q}%`);
-    }
-    let { data: allBooks, error } = await allBooksQuery;
-
-    // JWT expired fallback: If the user's session expired, their cookie sends an invalid token.
-    // We catch this and retry the fetch as an anonymous user since the books table is public.
-    if (error && error.code === 'PGRST303') {
+    // Helper: build an anon client (used for JWT-expired fallback)
+    const makeAnonClient = async () => {
         const { createServerClient } = await import('@supabase/ssr');
-        const anonSupabase = createServerClient(
+        return createServerClient(
             process.env.NEXT_PUBLIC_SUPABASE_URL!,
             process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
             { cookies: { getAll() { return []; }, setAll() { } } }
         );
+    };
 
-        let fallbackQuery = anonSupabase.from('books').select('*');
-        if (q) {
-            fallbackQuery = fallbackQuery.or(`title.ilike.%${q}%,author.ilike.%${q}%`);
+    // ── 1a. Accurate total count via HEAD request (Content-Range header) ─────────
+    //    count:'exact' + head:true sends a HEAD query to PostgREST which returns
+    //    the full count WITHOUT fetching rows — immune to row-limit caps.
+    const buildCountQuery = (client: any) => {
+        let q2 = client.from('books').select('*', { count: 'exact', head: true });
+        if (q) q2 = q2.or(`title.ilike.%${q}%,author.ilike.%${q}%`);
+        if (category) q2 = q2.eq('genre', category);
+        return q2;
+    };
+
+    let { count: totalFilteredBooks, error: countError } = await buildCountQuery(supabase);
+
+    if (countError && countError.code === 'PGRST303') {
+        const anonSupabase = await makeAnonClient();
+        const res = await buildCountQuery(anonSupabase);
+        totalFilteredBooks = res.count;
+        countError = res.error;
+    }
+    if (countError) console.error("Sayım hatası:", countError);
+    totalFilteredBooks = totalFilteredBooks ?? 0;
+
+    // ── 1b. Genre breakdown for sidebar — fetch all genres in batches of 1000 ────
+    //    We only need id+genre (lightweight), and we loop until PostgREST gives us
+    //    fewer rows than the batch size, meaning we've consumed everything.
+    const fetchAllGenres = async (client: any) => {
+        const BATCH = 1000;
+        let offset = 0;
+        const allGenres: { genre: string | null }[] = [];
+        while (true) {
+            let bq = client
+                .from('books')
+                .select('genre')
+                .range(offset, offset + BATCH - 1);
+            if (q) bq = bq.or(`title.ilike.%${q}%,author.ilike.%${q}%`);
+            // For genres we always fetch ALL categories (not just the selected one),
+            // so the sidebar shows counts for every genre.
+            const { data, error: bErr } = await bq;
+            if (bErr || !data || data.length === 0) break;
+            allGenres.push(...data);
+            if (data.length < BATCH) break;
+            offset += BATCH;
         }
-        const fallbackRes = await fallbackQuery;
-        allBooks = fallbackRes.data;
-        error = fallbackRes.error;
+        return allGenres;
+    };
+
+    let allGenreRows = await fetchAllGenres(supabase);
+    // Fallback: if empty and a JWT error is possible, retry anonymously
+    if (allGenreRows.length === 0) {
+        const anonSupabase = await makeAnonClient();
+        allGenreRows = await fetchAllGenres(anonSupabase);
     }
 
-    if (error) console.error("Veritabanı Hatası:", error);
+    // ── 2. Sayfalı kitap sorgusu (sadece bu sayfanın kitapları) ─────────────────
+    let pageQuery = supabase
+        .from('books')
+        .select('*')
+        .range(from, to);
+    if (q) {
+        pageQuery = pageQuery.or(`title.ilike.%${q}%,author.ilike.%${q}%`);
+    }
+    if (category) {
+        pageQuery = pageQuery.eq('genre', category);
+    }
+    let { data: pageBooks, error: pageError } = await pageQuery;
 
-    // Fetch user and user's reviewed books
+    if (pageError && pageError.code === 'PGRST303') {
+        const anonSupabase = await makeAnonClient();
+        let fallbackPageQuery = anonSupabase.from('books').select('*').range(from, to);
+        if (q) fallbackPageQuery = fallbackPageQuery.or(`title.ilike.%${q}%,author.ilike.%${q}%`);
+        if (category) fallbackPageQuery = fallbackPageQuery.eq('genre', category);
+        const res = await fallbackPageQuery;
+        pageBooks = res.data;
+        pageError = res.error;
+    }
+    if (pageError) console.error("Sayfa sorgu hatası:", pageError);
+
+    // ── 3. Kullanıcı ve değerlendirilen kitaplar ─────────────────────────────────
     const { data: { user } } = await supabase.auth.getUser();
     let userReviewedBookIds = new Set<string>();
     if (user) {
@@ -69,9 +132,9 @@ export default async function BooksPage(props: { searchParams: Promise<{ q?: str
         }
     }
 
-    // 2. Kategori haritasını oluştur
+    // ── 4. Kategori haritasını oluştur ───────────────────────────────────────────
     const categoryMap: Record<string, number> = {};
-    allBooks?.forEach((book) => {
+    allGenreRows.forEach((book) => {
         const genre = book.genre?.trim();
         if (genre) {
             categoryMap[genre] = (categoryMap[genre] || 0) + 1;
@@ -81,19 +144,26 @@ export default async function BooksPage(props: { searchParams: Promise<{ q?: str
         .map(([name, count]) => ({ name, count }))
         .sort((a, b) => a.name.localeCompare(b.name));
 
-    // 3. Seçili kategoriye göre filtrele
-    const filteredBooks = category
-        ? allBooks?.filter((book) => book.genre?.trim() === category)
-        : allBooks;
+    // ── 5. Toplam kitap sayısı ve sayfalama ──────────────────────────────────────
+    const totalPages = Math.ceil((totalFilteredBooks as number) / PAGE_SIZE);
 
-    // 4. MÜHENDİSLİK DOKUNUŞU: Google API üzerinden kapakları paralel olarak çek
-    // ISBN varsa ISBN, yoksa Title+Author araması yapar
-    const books = filteredBooks ? await Promise.all(filteredBooks.map(async (book) => {
+    // ── 6. Google Books API üzerinden kapakları paralel çek ──────────────────────
+    const books = pageBooks ? await Promise.all(pageBooks.map(async (book) => {
         const coverUrl = await getBookCover(book.isbn, book.title, book.author);
         return { ...book, coverUrl };
     })) : [];
 
-    const dbBookTitles = allBooks?.map((book) => book.title) || [];
+    // ── 7. CatalogResults için tüm başlıklar (yalnızca sayfalanmış sonuçlar) ─────
+    const dbBookTitles = pageBooks?.map((book) => book.title) || [];
+
+    // ── 8. Sayfalama URL yardımcısı ───────────────────────────────────────────────
+    const buildPageUrl = (p: number) => {
+        const params = new URLSearchParams();
+        if (q) params.set('q', q);
+        if (category) params.set('category', category);
+        params.set('page', String(p));
+        return `/books?${params.toString()}`;
+    };
 
     return (
         <>
@@ -125,12 +195,19 @@ export default async function BooksPage(props: { searchParams: Promise<{ q?: str
                                     </li>
                                 </ul>
                             </div>
-                            <CategoryFilter categories={categories} totalBooks={allBooks?.length || 0} />
+                            <CategoryFilter categories={categories} totalBooks={totalFilteredBooks} />
                         </aside>
 
                         <section className="books-content">
                             <div className="content-header">
-                                <p className="results-count">Showing <strong>{books.length} books</strong></p>
+                                <p className="results-count">
+                                    Showing <strong>{books.length} of {totalFilteredBooks} books</strong>
+                                    {totalPages > 1 && (
+                                        <span style={{ color: 'var(--color-muted)', fontWeight: 400, marginLeft: '8px' }}>
+                                            — Page {page} of {totalPages}
+                                        </span>
+                                    )}
+                                </p>
                                 <div className="sort-options">
                                     <label htmlFor="sort-select">Sort by:</label>
                                     <select id="sort-select" className="sort-select">
@@ -150,7 +227,7 @@ export default async function BooksPage(props: { searchParams: Promise<{ q?: str
                                             style={{
                                                 background: book.coverUrl
                                                     ? `url(${book.coverUrl}) center/cover no-repeat`
-                                                    : coverGradients[index % coverGradients.length]
+                                                    : coverGradients[(from + index) % coverGradients.length]
                                             }}
                                         >
                                             <span className="book-spine"></span>
@@ -194,6 +271,74 @@ export default async function BooksPage(props: { searchParams: Promise<{ q?: str
                                     </article>
                                 ))}
                             </div>
+
+                            {/* ── Sayfalama Kontrolü ─────────────────────────────── */}
+                            {totalPages > 1 && (
+                                <nav className="pagination" aria-label="Sayfa navigasyonu" style={{
+                                    display: 'flex',
+                                    justifyContent: 'center',
+                                    alignItems: 'center',
+                                    gap: '8px',
+                                    marginTop: '48px',
+                                    flexWrap: 'wrap',
+                                }}>
+                                    {/* Önceki sayfa */}
+                                    {page > 1 && (
+                                        <a
+                                            href={buildPageUrl(page - 1)}
+                                            className="btn btn-secondary btn-sm"
+                                            aria-label="Önceki sayfa"
+                                        >
+                                            ← Prev
+                                        </a>
+                                    )}
+
+                                    {/* Sayfa numaraları (max 7 görünür) */}
+                                    {(() => {
+                                        const pageNums: (number | null)[] = [];
+                                        const delta = 2;
+                                        const left = Math.max(1, page - delta);
+                                        const right = Math.min(totalPages, page + delta);
+
+                                        if (left > 1) { pageNums.push(1); if (left > 2) pageNums.push(null); }
+                                        for (let i = left; i <= right; i++) pageNums.push(i);
+                                        if (right < totalPages) { if (right < totalPages - 1) pageNums.push(null); pageNums.push(totalPages); }
+
+                                        return pageNums.map((p, i) =>
+                                            p === null ? (
+                                                <span key={`ellipsis-${i}`} style={{ color: 'var(--color-muted)', padding: '0 4px' }}>…</span>
+                                            ) : (
+                                                <a
+                                                    key={p}
+                                                    href={buildPageUrl(p)}
+                                                    className="btn btn-sm"
+                                                    style={{
+                                                        background: p === page ? 'var(--color-primary)' : 'var(--color-surface)',
+                                                        color: p === page ? '#fff' : 'var(--color-text)',
+                                                        border: '1px solid var(--color-border)',
+                                                        minWidth: '40px',
+                                                        textAlign: 'center',
+                                                    }}
+                                                    aria-current={p === page ? 'page' : undefined}
+                                                >
+                                                    {p}
+                                                </a>
+                                            )
+                                        );
+                                    })()}
+
+                                    {/* Sonraki sayfa */}
+                                    {page < totalPages && (
+                                        <a
+                                            href={buildPageUrl(page + 1)}
+                                            className="btn btn-secondary btn-sm"
+                                            aria-label="Sonraki sayfa"
+                                        >
+                                            Next →
+                                        </a>
+                                    )}
+                                </nav>
+                            )}
 
                             {/* İYTE Katalog Sonuçları (API'den çekilen ek veriler) */}
                             <CatalogResults dbBookTitles={dbBookTitles} />

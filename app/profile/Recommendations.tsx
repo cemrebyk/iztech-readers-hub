@@ -1,4 +1,5 @@
 "use client"
+
 import { useEffect, useState } from 'react'
 import { supabase } from '../../lib/supabase'
 import { getBookCover } from '../../lib/bookCover'
@@ -10,93 +11,191 @@ export default function Recommendations({ userId }: { userId: string }) {
 
     useEffect(() => {
         const fetchRecs = async () => {
+            if (!userId) return;
             setLoading(true);
-            const { data, error } = await supabase.rpc('get_inventory_aware_recommendations', {
-                target_user_id: userId
-            });
+            try {
+                const { data, error } = await supabase.rpc('get_inventory_aware_recommendations', {
+                    target_user_id: userId
+                });
 
-            if (!error && data) {
-                const processedRecs = [];
+                if (error) throw error;
 
-                // NetworkError'u önlemek için istekleri seri (sırayla) atıyoruz
-                for (const book of data) {
-                    try {
-                        const coverUrl = await getBookCover(book.isbn, book.title, book.author);
-                        processedRecs.push({ ...book, coverUrl });
-                    } catch (err) {
-                        console.error(`${book.title} kapağı alınamadı:`, err);
-                        processedRecs.push({ ...book, coverUrl: null });
+                if (data) {
+                    const processedRecs = [];
+                    // 10 kitap için döngüye giriyoruz
+                    for (const book of data) {
+                        try {
+                            // 1. İsteği daha kontrollü atıyoruz
+                            const coverUrl = await getBookCover(book.p_isbn, book.p_title, book.p_author);
+                            processedRecs.push({ ...book, coverUrl });
+                        } catch (err) {
+                            // API hata verirse NetworkError fırlatmasın, sadece resmi null yapsın
+                            console.warn(`${book.p_title} için kapak çekilemedi, varsayılan renk kullanılacak.`);
+                            processedRecs.push({ ...book, coverUrl: null });
+                        }
+
+                        // 2. BEKLEME SÜRESİNİ ARTIR (Çok Önemli)
+                        // 80ms çok hızlıydı, API'yi kızdırmamak için 250ms yapıyoruz.
+                        await new Promise(resolve => setTimeout(resolve, 250));
                     }
-                    // API'yi yormamak için her istek arasına 100ms boşluk
-                    await new Promise(resolve => setTimeout(resolve, 100));
+                    setRecs(processedRecs);
                 }
-                setRecs(processedRecs);
+            } catch (err) {
+                console.error("Öneri hatası detayları:", err);
+            } finally {
+                setLoading(false);
             }
-            setLoading(false);
         };
-        if (userId) fetchRecs();
+
+        fetchRecs();
     }, [userId]);
 
-    // Recommendations.tsx içindeki kontrol kısmını değiştir:
-    if (loading) return <div style={{ padding: '40px', textAlign: 'center' }}>⏳ Kütüphane asistanı zevklerini analiz ediyor...</div>;
-
-    // reks.length === 0 ise null dönmek yerine mesaj göster
-    if (recs.length === 0) return (
-        <div style={{ padding: '40px', textAlign: 'center', background: '#fff', borderRadius: '15px', border: '1px dashed #ccc' }}>
-            <p>🔍 Şu an senin için spesifik bir eşleşme bulamadık, ama yeni kitaplar keşfetmeye devam edebilirsin!</p>
+    if (loading) return (
+        <div style={{ padding: '60px', textAlign: 'center', color: '#666', fontSize: '1.1rem' }}>
+            ⏳ İYTE Kütüphane asistanı akıllı analiz yapıyor...
         </div>
     );
+
+    if (recs.length === 0) return null;
+
     return (
-        <section style={{ marginTop: '40px', padding: '0 20px' }}>
-            <h2 style={{ marginBottom: '20px', fontSize: '1.6rem', borderBottom: '2px solid #eee', paddingBottom: '10px' }}>
+        <section style={{ marginTop: '40px', padding: '0 20px', position: 'relative' }}>
+            <h2 style={{ marginBottom: '25px', fontSize: '1.8rem', fontWeight: 'bold', borderBottom: '2px solid #9a0e20', paddingBottom: '10px', display: 'inline-block' }}>
                 ✨ Senin İçin Seçtiklerimiz
             </h2>
+
             <div style={{
                 display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))',
-                gap: '25px'
+                gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))',
+                gap: '30px'
             }}>
                 {recs.map((book) => (
-                    <Link href={`/books/${book.id}`} key={book.id} style={{ textDecoration: 'none', color: 'inherit' }}>
-                        <div style={{
-                            background: 'white',
-                            borderRadius: '15px',
-                            overflow: 'hidden',
-                            boxShadow: '0 8px 20px rgba(0,0,0,0.06)',
-                            border: '1px solid #f0f0f0',
-                            height: '100%',
-                            transition: 'transform 0.3s ease'
-                        }}
-                            onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-5px)'}
-                            onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}
-                        >
-                            <div style={{
-                                height: '240px',
-                                background: book.coverUrl ? `url(${book.coverUrl}) center/cover no-repeat` : 'linear-gradient(135deg, #9a0e20 0%, #6b0a17 100%)',
-                                display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', textAlign: 'center', padding: '15px'
-                            }}>
-                                {!book.coverUrl && <span style={{ fontSize: '1rem', fontWeight: '600' }}>{book.title}</span>}
-                            </div>
-                            <div style={{ padding: '15px' }}>
-                                <h4 style={{ margin: '0', fontSize: '1rem', fontWeight: '700', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{book.title}</h4>
-                                <p style={{ margin: '6px 0', fontSize: '0.85rem', color: '#666' }}>{book.author}</p>
-                                <div style={{
-                                    fontSize: '0.75rem',
-                                    background: '#fdf2f2',
-                                    color: '#9a0e20',
-                                    padding: '4px 10px',
-                                    borderRadius: '6px',
-                                    display: 'inline-block',
-                                    fontWeight: 'bold',
-                                    border: '1px solid #f9d5d5'
+                    <div key={book.p_id} className="recommendation-group">
+                        <Link href={`/books/${book.p_id}`} style={{ textDecoration: 'none', color: 'inherit' }}>
+                            <div className="recommendation-card">
+                                {/* Kapak Alanı */}
+                                <div className="cover-container" style={{
+                                    background: book.coverUrl ? `url(${book.coverUrl}) center/cover no-repeat` : 'linear-gradient(135deg, #9a0e20 0%, #6b0a17 100%)'
                                 }}>
-                                    🎯 Uyum: %{Math.round(book.recommendation_score)}
+                                    {!book.coverUrl && <span style={{ padding: '20px', fontWeight: 'bold' }}>{book.p_title}</span>}
+                                </div>
+
+                                {/* Bilgi Alanı */}
+                                <div style={{ padding: '15px' }}>
+                                    <h4 style={{ margin: '0', fontSize: '1rem', fontWeight: '700', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                        {book.p_title}
+                                    </h4>
+                                    <p style={{ margin: '6px 0', fontSize: '0.85rem', color: '#666' }}>{book.p_author}</p>
+
+                                    <div className="score-wrapper">
+                                        <div className="score-badge">
+                                            🎯 Uyum: %{Math.max(0, Math.round(book.p_recommendation_score))}
+                                        </div>
+
+                                        {/* Gelişmiş Tooltip (XAI - Explainable AI) */}
+                                        <div className="score-tooltip">
+                                            <div style={{ borderBottom: '1px solid #555', paddingBottom: '5px', marginBottom: '8px', fontWeight: 'bold', fontSize: '0.8rem', color: '#fff' }}>
+                                                Neden Önerildi?
+                                            </div>
+                                            {book.p_score_details && Object.entries(book.p_score_details).map(([key, val]: any) => (
+                                                <div key={key} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
+                                                    <span style={{ color: '#bbb' }}>{key}:</span>
+                                                    <span style={{ fontWeight: 'bold', color: val < 0 ? '#ff7675' : '#55efc4' }}>
+                                                        {val > 0 ? `+${val}` : val}
+                                                    </span>
+                                                </div>
+                                            ))}
+                                            <div style={{ borderTop: '1px solid #555', marginTop: '8px', paddingTop: '8px', textAlign: 'right', fontWeight: 'bold', color: '#fff' }}>
+                                                Toplam Skor: {Math.max(0, Math.round(book.p_recommendation_score))}
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
-                        </div>
-                    </Link>
+                        </Link>
+                    </div>
                 ))}
             </div>
+
+            <style jsx>{`
+                .recommendation-group { position: relative; z-index: 1; }
+                .recommendation-group:hover { z-index: 100; }
+                
+                .recommendation-card {
+                    background: white;
+                    border-radius: 15px;
+                    box-shadow: 0 10px 25px rgba(0,0,0,0.08);
+                    border: 1px solid #eee;
+                    height: 100%;
+                    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+                    position: relative;
+                }
+                
+                .recommendation-card:hover {
+                    transform: translateY(-10px);
+                    box-shadow: 0 15px 35px rgba(0,0,0,0.12);
+                }
+                
+                .cover-container {
+                    height: 260px;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    color: white;
+                    text-align: center;
+                    border-top-left-radius: 15px;
+                    border-top-right-radius: 15px;
+                    overflow: hidden;
+                }
+                
+                .score-wrapper { position: relative; display: inline-block; margin-top: 5px; }
+                
+                .score-badge {
+                    font-size: 0.75rem;
+                    background: #fdf2f2;
+                    color: #9a0e20;
+                    padding: 5px 12px;
+                    border-radius: 8px;
+                    font-weight: 800;
+                    border: 1px solid #f9d5d5;
+                    cursor: help;
+                }
+                
+                .score-tooltip {
+                    visibility: hidden;
+                    opacity: 0;
+                    position: absolute;
+                    bottom: 150%;
+                    left: 50%;
+                    transform: translateX(-50%);
+                    background: rgba(15, 15, 15, 0.95);
+                    color: white;
+                    padding: 15px;
+                    border-radius: 10px;
+                    width: 220px;
+                    z-index: 9999;
+                    transition: all 0.2s ease-in-out;
+                    pointer-events: none;
+                    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+                    backdrop-filter: blur(4px);
+                }
+                
+                .score-wrapper:hover .score-tooltip {
+                    visibility: visible;
+                    opacity: 1;
+                }
+                
+                .score-tooltip::after {
+                    content: "";
+                    position: absolute;
+                    top: 100%;
+                    left: 50%;
+                    margin-left: -8px;
+                    border-width: 8px;
+                    border-style: solid;
+                    border-color: rgba(15, 15, 15, 0.95) transparent transparent transparent;
+                }
+            `}</style>
         </section>
     );
 }
