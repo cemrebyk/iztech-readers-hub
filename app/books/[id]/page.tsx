@@ -4,7 +4,8 @@ import Navbar from '../../components/Navbar';
 import AddToListAction from './AddToListAction';
 import ReviewForm from './ReviewForm';
 import RefreshButton from '../RefreshButton';
-import { getBookCover } from '../../../lib/bookCover'; // Önceki adımda oluşturduğumuz yardımcı fonksiyon
+import { getBookCover } from '../../../lib/bookCover';
+import ShareBook from '@/app/components/ShareBook'; // Doğru import yolu
 
 export default async function BookDetailsPage({ params }: { params: Promise<{ id: string }> }) {
 
@@ -35,7 +36,7 @@ export default async function BookDetailsPage({ params }: { params: Promise<{ id
     // 2. MÜHENDİSLİK DOKUNUŞU: Kitap verisi geldikten sonra Google'dan kapak resmini çekiyoruz
     const coverUrl = await getBookCover(book.isbn, book.title, book.author);
 
-    // Rating ve Yıldız hesaplama mantığı (Gelen koddaki gibi korunuyor)
+    // Rating ve Yıldız hesaplama mantığı
     const avgRating = reviews.length > 0
         ? reviews.reduce((sum: number, r: any) => sum + r.rating, 0) / reviews.length
         : 0;
@@ -68,7 +69,6 @@ export default async function BookDetailsPage({ params }: { params: Promise<{ id
                             {/* Left: Book Cover */}
                             <div className="book-cover-large">
                                 <div className="book-cover-inner" style={{
-                                    // Eğer coverUrl varsa resmi bas, yoksa gradyanı kullan
                                     background: coverUrl ? `url(${coverUrl}) center/cover no-repeat` : coverGradient,
                                     height: '500px',
                                     borderRadius: '10px 20px 20px 10px',
@@ -87,7 +87,6 @@ export default async function BookDetailsPage({ params }: { params: Promise<{ id
                                         background: 'rgba(0,0,0,0.2)',
                                         borderRadius: '2px'
                                     }}></span>
-                                    {/* Sadece kapak resmi YOKSA başlığı kapağın üzerine yaz */}
                                     {!coverUrl && (
                                         <div className="book-title-cover-large" style={{ color: 'white', padding: '40px', textAlign: 'center', fontWeight: 'bold', fontSize: '1.8rem', textTransform: 'uppercase' }}>
                                             {book.title}
@@ -102,10 +101,19 @@ export default async function BookDetailsPage({ params }: { params: Promise<{ id
                                     <a href="/books" style={{ color: '#9a0e20', textDecoration: 'none' }}>Books</a> &gt; <span>{book.genre || 'General'}</span> &gt; <span>{book.title}</span>
                                 </div>
 
-                                <h1 style={{ fontSize: '3rem', marginBottom: '10px', color: '#1a1a1a' }}>{book.title}</h1>
-                                <p className="book-author-large" style={{ fontSize: '1.5rem', color: '#9a0e20', marginBottom: '20px' }}>
-                                    {book.author}
-                                </p>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '20px' }}>
+                                    <div>
+                                        <h1 style={{ fontSize: '3rem', marginBottom: '10px', color: '#1a1a1a', lineHeight: '1.1' }}>{book.title}</h1>
+                                        <p className="book-author-large" style={{ fontSize: '1.5rem', color: '#9a0e20', marginBottom: '20px' }}>
+                                            {book.author}
+                                        </p>
+                                    </div>
+
+                                    {/* MÜDÜRÜN İSTEDİĞİ PAYLAŞ BUTONU BURADA */}
+                                    <div style={{ marginTop: '10px' }}>
+                                        <ShareBook bookTitle={book.title} bookId={bookId} />
+                                    </div>
+                                </div>
 
                                 <div className="rating-section" style={{ display: 'flex', gap: '20px', alignItems: 'center', marginBottom: '30px' }}>
                                     <div className="stars" style={{ fontSize: '1.5rem', color: '#FFD700' }}>{starsDisplay}</div>
@@ -194,7 +202,7 @@ export default async function BookDetailsPage({ params }: { params: Promise<{ id
                     </div>
                 </section>
 
-                {/* Review Section (Forms and History) */}
+                {/* Review Section */}
                 <section style={{ padding: '50px 0', background: 'var(--color-cream)' }}>
                     <div className="container" style={{ maxWidth: '900px' }}>
                         {user ? (
@@ -224,6 +232,7 @@ export default async function BookDetailsPage({ params }: { params: Promise<{ id
                                                     })}
                                                 </span>
                                             </div>
+                                            {/* Review Content logic can be added here if you have review text */}
                                             <div className="review-card-tags" style={{ display: 'flex', flexWrap: 'wrap', gap: '5px' }}>
                                                 {(review.tags || []).map((tag: string) => (
                                                     <span key={tag} className="review-tag" style={{ background: '#f0f0f0', padding: '2px 8px', borderRadius: '4px', fontSize: '0.75rem' }}>#{tag}</span>

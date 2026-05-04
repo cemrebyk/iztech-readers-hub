@@ -1,7 +1,6 @@
 "use client"
 
 import { useState } from 'react'
-import { useRouter } from 'next/navigation'
 
 interface RefreshButtonProps {
     bookId: any;
@@ -18,7 +17,6 @@ export default function RefreshButton({ bookId, isbn, title, initialTitle, initi
     const [availability, setAvailability] = useState<boolean | null>(
         initialAvailability !== undefined ? initialAvailability : null
     )
-    const router = useRouter()
 
     const handleRefresh = async () => {
         try {
@@ -43,8 +41,6 @@ export default function RefreshButton({ bookId, isbn, title, initialTitle, initi
             if (data.db_updated) {
                 // Update local state immediately so the UI reflects the change
                 setAvailability(data.is_available)
-                // Tell Next.js to re-fetch server component data
-                router.refresh()
                 alert(`"${initialTitle}" availability updated!\n\nStatus: ${data.is_available ? 'Available on Shelf ✅' : 'Currently Borrowed ⏳'}`)
             } else if (data.error) {
                 alert(`Could not check: ${data.error}`)

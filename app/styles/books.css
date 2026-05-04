@@ -407,12 +407,21 @@
 /* Book Actions */
 .book-actions {
     display: flex;
-    gap: var(--space-sm);
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.book-actions .btn {
+    white-space: nowrap;
+    flex: 1 1 0;
+    min-width: 0;
+    text-align: center;
+    justify-content: center;
 }
 
 .btn-sm {
-    padding: var(--space-sm) var(--space-md);
-    font-size: 0.8rem;
+    padding: 6px 10px;
+    font-size: 0.78rem;
 }
 
 /* Pagination */
@@ -496,14 +505,6 @@
         gap: var(--space-md);
         align-items: flex-start;
     }
-
-    .book-actions {
-        flex-direction: column;
-    }
-
-    .btn-sm {
-        width: 100%;
-    }
 }
 
 /* ================================
@@ -581,4 +582,178 @@
         opacity: 1;
         transform: translateY(0); 
     }
+}
+
+/* ================================
+   Add to List Popover
+   ================================ */
+.add-to-list-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 9998;
+}
+
+.add-to-list-popover {
+    position: absolute;
+    z-index: 9999;
+    width: 260px;
+    background: var(--color-white);
+    border: 1px solid var(--color-sepia);
+    border-radius: var(--radius-lg);
+    box-shadow: 0 12px 36px rgba(0, 0, 0, 0.15), 0 2px 8px rgba(0, 0, 0, 0.08);
+    animation: popoverFadeIn 0.2s ease;
+    overflow: hidden;
+}
+
+.add-to-list-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--color-sepia-light);
+    background: linear-gradient(135deg, #fdfbf7 0%, #f8f4ee 100%);
+}
+
+.add-to-list-title {
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: var(--color-text);
+}
+
+.add-to-list-close {
+    background: none;
+    border: none;
+    font-size: 1.4rem;
+    color: var(--color-text-muted);
+    cursor: pointer;
+    line-height: 1;
+    padding: 0;
+    transition: color 0.2s;
+}
+
+.add-to-list-close:hover {
+    color: var(--color-primary);
+}
+
+.add-to-list-items {
+    list-style: none;
+    padding: 6px 0;
+    margin: 0;
+    max-height: 240px;
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: var(--color-sepia) transparent;
+}
+
+.add-to-list-item {
+    margin: 0;
+    padding: 0;
+}
+
+.add-to-list-item-btn {
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 16px;
+    background: none;
+    border: none;
+    font-family: var(--font-body);
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    color: var(--color-text);
+    text-align: left;
+}
+
+.add-to-list-item-btn:hover:not(:disabled) {
+    background: var(--color-sepia-light);
+}
+
+.add-to-list-item-btn.already-added {
+    opacity: 0.6;
+    cursor: default;
+}
+
+.add-to-list-item-name {
+    flex: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin-right: 8px;
+}
+
+.add-to-list-item-status {
+    flex-shrink: 0;
+    font-weight: 700;
+    font-size: 1rem;
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    transition: all 0.2s ease;
+}
+
+.add-to-list-item-btn:not(.already-added) .add-to-list-item-status {
+    color: var(--color-primary);
+    background: rgba(154, 14, 32, 0.08);
+}
+
+.add-to-list-item-btn:not(.already-added):hover .add-to-list-item-status {
+    background: rgba(154, 14, 32, 0.18);
+}
+
+.add-to-list-item-btn.already-added .add-to-list-item-status {
+    color: #1e7e34;
+    background: #e6f4ea;
+    font-size: 0.85rem;
+}
+
+.add-to-list-message {
+    padding: 8px 16px;
+    font-size: 0.8rem;
+    text-align: center;
+    font-weight: 500;
+    border-top: 1px solid var(--color-sepia-light);
+}
+
+.add-to-list-message.success {
+    background: #e6f4ea;
+    color: #1e7e34;
+}
+
+.add-to-list-message.error {
+    background: #fce8e6;
+    color: #c5221f;
+}
+
+.add-to-list-spinner {
+    display: inline-block;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes popoverFadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(-4px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+/* Add to List trigger button */
+.add-to-list-trigger {
+    position: relative;
 }

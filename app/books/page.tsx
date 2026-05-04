@@ -6,6 +6,7 @@ import CategoryFilter from './CategoryFilter'
 import Navbar from '../components/Navbar'
 import { getBookCover } from '../../lib/bookCover' // lib/googleBooks.ts içine yazdığımız fonksiyon
 import RateThisButton from './RateThisButton'
+import AddToListButton from './AddToListButton'
 
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
@@ -264,6 +265,10 @@ export default async function BooksPage(props: { searchParams: Promise<{ q?: str
                                                     bookTitle={book.title} 
                                                     hasExistingReview={userReviewedBookIds.has(String(book.id))} 
                                                     isAuth={!!user} 
+                                                />
+                                                <AddToListButton
+                                                    bookId={String(book.id)}
+                                                    isAuth={!!user}
                                                 />
                                                 <a href={`/books/${book.id}`} className="btn btn-secondary btn-sm">Details</a>
                                             </div>

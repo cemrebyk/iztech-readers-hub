@@ -5,109 +5,141 @@ import { supabase } from '../../lib/supabase'
 import { getBookCover } from '../../lib/bookCover'
 import Link from 'next/link'
 
+interface Recommendation {
+    p_id: string;
+    p_title: string;
+    p_author: string;
+    p_genre: string;
+    p_isbn: string;
+    p_is_available: boolean;
+    p_recommendation_score: number;
+    p_score_details: Record<string, number>;
+    coverUrl?: string | null;
+}
+
 export default function Recommendations({ userId }: { userId: string }) {
-    const [recs, setRecs] = useState<any[]>([]);
+    const [recs, setRecs] = useState<Recommendation[]>([]);
     const [loading, setLoading] = useState(true);
 
-    useEffect(() => {
-        const fetchRecs = async () => {
-            if (!userId) return;
-            setLoading(true);
-            try {
-                const { data, error } = await supabase.rpc('get_inventory_aware_recommendations', {
-                    target_user_id: userId
-                });
+    const fetchRecs = async () => {
+        if (!userId) return;
+        setLoading(true);
+        try {
+            const { data, error } = await supabase.rpc('get_inventory_aware_recommendations', {
+                target_user_id: userId
+            });
 
-                if (error) throw error;
+            if (error) throw error;
 
-                if (data) {
-                    const processedRecs = [];
-                    // 10 kitap için döngüye giriyoruz
-                    for (const book of data) {
-                        try {
-                            // 1. İsteği daha kontrollü atıyoruz
-                            const coverUrl = await getBookCover(book.p_isbn, book.p_title, book.p_author);
-                            processedRecs.push({ ...book, coverUrl });
-                        } catch (err) {
-                            // API hata verirse NetworkError fırlatmasın, sadece resmi null yapsın
-                            console.warn(`${book.p_title} için kapak çekilemedi, varsayılan renk kullanılacak.`);
-                            processedRecs.push({ ...book, coverUrl: null });
-                        }
-
-                        // 2. BEKLEME SÜRESİNİ ARTIR (Çok Önemli)
-                        // 80ms çok hızlıydı, API'yi kızdırmamak için 250ms yapıyoruz.
-                        await new Promise(resolve => setTimeout(resolve, 250));
-                    }
-                    setRecs(processedRecs);
-                }
-            } catch (err) {
-                console.error("Öneri hatası detayları:", err);
-            } finally {
+            // Data boş olsa bile loading'i kapatmalıyız
+            if (!data || data.length === 0) {
+                setRecs([]);
                 setLoading(false);
+                return;
             }
-        };
 
+            const processedRecs = [];
+            for (const book of data) {
+                try {
+                    const coverUrl = await getBookCover(book.p_isbn, book.p_title, book.p_author);
+                    processedRecs.push({ ...book, coverUrl });
+                } catch (err) {
+                    processedRecs.push({ ...book, coverUrl: null });
+                }
+                await new Promise(resolve => setTimeout(resolve, 250));
+            }
+            setRecs(processedRecs);
+        } catch (err: any) {
+            console.error("Öneri Hatası:", err.message);
+            setRecs([]); // Hata durumunda boş liste göster, takılı kalma
+        } finally {
+            setLoading(false); // Her koşulda loading'i kapat
+        }
+    };
+
+    useEffect(() => {
         fetchRecs();
     }, [userId]);
 
+    // "İlgilenmiyorum" aksiyonu - Optimistic UI Update
+    // handleHideBook fonksiyonunu bu şekilde revize et
+    const handleHideBook = async (e: React.MouseEvent, bookId: string) => {
+        e.preventDefault();
+        e.stopPropagation();
+
+        // MİMARİ KARAR: insert yerine upsert kullanarak "Duplicate Key" hatasını engelliyoruz
+        const { error } = await supabase
+            .from('reading_list')
+            .upsert(
+                {
+                    user_id: userId,
+                    book_id: bookId,
+                    status: 'hidden'
+                },
+                { onConflict: 'user_id, book_id' } // Bu sütunlarda çakışma olursa güncelle
+            );
+
+        if (error) {
+            console.error("Kalıcılık Hatası (Persistence Error):", error.message);
+            return;
+        }
+
+        // Başarılıysa state'den çıkar
+        setRecs(prev => prev.filter(b => b.p_id !== bookId));
+    };
+
+
+
     if (loading) return (
-        <div style={{ padding: '60px', textAlign: 'center', color: '#666', fontSize: '1.1rem' }}>
-            ⏳ İYTE Kütüphane asistanı akıllı analiz yapıyor...
+        <div className="loading-state">
+            ⏳ Hub Zekası senin için kütüphaneyi tarıyor...
         </div>
     );
 
     if (recs.length === 0) return null;
 
     return (
-        <section style={{ marginTop: '40px', padding: '0 20px', position: 'relative' }}>
-            <h2 style={{ marginBottom: '25px', fontSize: '1.8rem', fontWeight: 'bold', borderBottom: '2px solid #9a0e20', paddingBottom: '10px', display: 'inline-block' }}>
-                ✨ Senin İçin Seçtiklerimiz
-            </h2>
+        <section className="recs-section">
+            <h2 className="recs-title">✨ Senin İçin Seçtiklerimiz</h2>
 
-            <div style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))',
-                gap: '30px'
-            }}>
+            <div className="recs-grid">
                 {recs.map((book) => (
-                    <div key={book.p_id} className="recommendation-group">
-                        <Link href={`/books/${book.p_id}`} style={{ textDecoration: 'none', color: 'inherit' }}>
-                            <div className="recommendation-card">
-                                {/* Kapak Alanı */}
-                                <div className="cover-container" style={{
+                    <div key={book.p_id} className="recs-card-wrapper">
+                        <Link href={`/books/${book.p_id}`} className="recs-link">
+                            <div className="recs-card">
+                                {/* Gizle Butonu */}
+                                <button
+                                    onClick={(e) => handleHideBook(e, book.p_id)}
+                                    className="recs-hide-btn"
+                                    type="button" // Form submit'i engellemek için önemli
+                                >
+                                    ✕
+                                </button>
+
+                                <div className="recs-cover" style={{
                                     background: book.coverUrl ? `url(${book.coverUrl}) center/cover no-repeat` : 'linear-gradient(135deg, #9a0e20 0%, #6b0a17 100%)'
                                 }}>
-                                    {!book.coverUrl && <span style={{ padding: '20px', fontWeight: 'bold' }}>{book.p_title}</span>}
+                                    {!book.coverUrl && <span>{book.p_title}</span>}
                                 </div>
 
-                                {/* Bilgi Alanı */}
-                                <div style={{ padding: '15px' }}>
-                                    <h4 style={{ margin: '0', fontSize: '1rem', fontWeight: '700', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                                        {book.p_title}
-                                    </h4>
-                                    <p style={{ margin: '6px 0', fontSize: '0.85rem', color: '#666' }}>{book.p_author}</p>
+                                <div className="recs-info">
+                                    <h4>{book.p_title}</h4>
+                                    <p>{book.p_author}</p>
 
-                                    <div className="score-wrapper">
-                                        <div className="score-badge">
-                                            🎯 Uyum: %{Math.max(0, Math.round(book.p_recommendation_score))}
-                                        </div>
+                                    <div className="recs-score-box">
+                                        <span className="recs-badge">🎯 %{Math.round(book.p_recommendation_score)} Uyum</span>
 
-                                        {/* Gelişmiş Tooltip (XAI - Explainable AI) */}
-                                        <div className="score-tooltip">
-                                            <div style={{ borderBottom: '1px solid #555', paddingBottom: '5px', marginBottom: '8px', fontWeight: 'bold', fontSize: '0.8rem', color: '#fff' }}>
-                                                Neden Önerildi?
-                                            </div>
-                                            {book.p_score_details && Object.entries(book.p_score_details).map(([key, val]: any) => (
-                                                <div key={key} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
-                                                    <span style={{ color: '#bbb' }}>{key}:</span>
-                                                    <span style={{ fontWeight: 'bold', color: val < 0 ? '#ff7675' : '#55efc4' }}>
+                                        {/* XAI Tooltip */}
+                                        <div className="recs-tooltip">
+                                            <div className="tooltip-header">Karar Analizi</div>
+                                            {Object.entries(book.p_score_details).map(([key, val]) => (
+                                                <div key={key} className="tooltip-row">
+                                                    <span>{key}:</span>
+                                                    <span style={{ color: val < 0 ? '#ff7675' : '#55efc4' }}>
                                                         {val > 0 ? `+${val}` : val}
                                                     </span>
                                                 </div>
                                             ))}
-                                            <div style={{ borderTop: '1px solid #555', marginTop: '8px', paddingTop: '8px', textAlign: 'right', fontWeight: 'bold', color: '#fff' }}>
-                                                Toplam Skor: {Math.max(0, Math.round(book.p_recommendation_score))}
-                                            </div>
                                         </div>
                                     </div>
                                 </div>
@@ -118,83 +150,32 @@ export default function Recommendations({ userId }: { userId: string }) {
             </div>
 
             <style jsx>{`
-                .recommendation-group { position: relative; z-index: 1; }
-                .recommendation-group:hover { z-index: 100; }
+                .recs-section { margin-top: 50px; padding: 0 10px; }
+                .recs-title { font-size: 1.6rem; font-weight: 800; color: #1a1a1a; margin-bottom: 20px; border-left: 5px solid #9a0e20; padding-left: 15px; }
+                .recs-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 25px; }
+                .recs-card-wrapper { position: relative; }
+                .recs-card { background: #fff; border-radius: 12px; border: 1px solid #eee; transition: all 0.3s ease; box-shadow: 0 4px 15px rgba(0,0,0,0.05); position: relative;
+}
+                .recs-card:hover { transform: translateY(-8px); box-shadow: 0 12px 25px rgba(0,0,0,0.1); }
                 
-                .recommendation-card {
-                    background: white;
-                    border-radius: 15px;
-                    box-shadow: 0 10px 25px rgba(0,0,0,0.08);
-                    border: 1px solid #eee;
-                    height: 100%;
-                    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-                    position: relative;
-                }
+                .recs-hide-btn { position: absolute; top: 10px; right: 10px; z-index: 10; background: rgba(0,0,0,0.4); color: white; border: none; border-radius: 50%; width: 26px; height: 26px; cursor: pointer; backdrop-filter: blur(5px); transition: 0.2s; }
+                .recs-hide-btn:hover { background: #9a0e20; transform: scale(1.1); }
+
+                .recs-cover { height: 260px; display: flex; align-items: center; justify-content: center; text-align: center; color: white; font-weight: bold; padding: 10px; font-size: 0.9rem; overflow: hidden; border-top-left-radius: 12px;  border-top-right-radius: 12px;
+}
+                .recs-info { padding: 15px; }
+                .recs-info h4 { margin: 0; font-size: 0.95rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+                .recs-info p { font-size: 0.8rem; color: #666; margin: 5px 0 12px 0; }
+
+                .recs-score-box { position: relative; display: inline-block; cursor: help; }
+                .recs-badge { background: #fdf2f2; color: #9a0e20; padding: 4px 10px; border-radius: 6px; font-size: 0.75rem; font-weight: 700; border: 1px solid #f9d5d5; }
+
+                .recs-tooltip { visibility: hidden; opacity: 0; position: absolute; bottom: 110%; left: 50%; transform: translateX(-50%); background: rgba(15, 15, 15, 0.98); color: #fff; padding: 15px; border-radius: 10px; width: 210px; font-size: 0.75rem; z-index: 9999; transition: all 0.2s ease-in-out; box-shadow: 0 10px 30px rgba(0,0,0,0.4); pointer-events: none;}
+                .recs-score-box:hover .recs-tooltip { visibility: visible; opacity: 1; }
+                .tooltip-header { border-bottom: 1px solid #333; margin-bottom: 8px; padding-bottom: 5px; font-weight: bold; color: #9a0e20; text-transform: uppercase; }
+                .tooltip-row { display: flex; justify-content: space-between; margin-bottom: 3px; }
                 
-                .recommendation-card:hover {
-                    transform: translateY(-10px);
-                    box-shadow: 0 15px 35px rgba(0,0,0,0.12);
-                }
-                
-                .cover-container {
-                    height: 260px;
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    color: white;
-                    text-align: center;
-                    border-top-left-radius: 15px;
-                    border-top-right-radius: 15px;
-                    overflow: hidden;
-                }
-                
-                .score-wrapper { position: relative; display: inline-block; margin-top: 5px; }
-                
-                .score-badge {
-                    font-size: 0.75rem;
-                    background: #fdf2f2;
-                    color: #9a0e20;
-                    padding: 5px 12px;
-                    border-radius: 8px;
-                    font-weight: 800;
-                    border: 1px solid #f9d5d5;
-                    cursor: help;
-                }
-                
-                .score-tooltip {
-                    visibility: hidden;
-                    opacity: 0;
-                    position: absolute;
-                    bottom: 150%;
-                    left: 50%;
-                    transform: translateX(-50%);
-                    background: rgba(15, 15, 15, 0.95);
-                    color: white;
-                    padding: 15px;
-                    border-radius: 10px;
-                    width: 220px;
-                    z-index: 9999;
-                    transition: all 0.2s ease-in-out;
-                    pointer-events: none;
-                    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-                    backdrop-filter: blur(4px);
-                }
-                
-                .score-wrapper:hover .score-tooltip {
-                    visibility: visible;
-                    opacity: 1;
-                }
-                
-                .score-tooltip::after {
-                    content: "";
-                    position: absolute;
-                    top: 100%;
-                    left: 50%;
-                    margin-left: -8px;
-                    border-width: 8px;
-                    border-style: solid;
-                    border-color: rgba(15, 15, 15, 0.95) transparent transparent transparent;
-                }
+                .loading-state { padding: 80px; text-align: center; color: #888; font-weight: 500; font-size: 1.1rem; }
             `}</style>
         </section>
     );
