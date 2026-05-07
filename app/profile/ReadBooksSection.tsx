@@ -16,6 +16,8 @@ const coverGradients = [
     "linear-gradient(135deg, #7f5539 0%, #5c3d29 100%)"
 ]
 
+const BOOKS_PER_PAGE = 12
+
 interface ReadBook {
     id: string
     title: string
@@ -28,6 +30,14 @@ interface ReadBooksSectionProps {
 
 export default function ReadBooksSection({ books }: ReadBooksSectionProps) {
     const [isOpen, setIsOpen] = useState(false)
+    const [visibleCount, setVisibleCount] = useState(BOOKS_PER_PAGE)
+
+    const visibleBooks = books.slice(0, visibleCount)
+    const hasMore = visibleCount < books.length
+
+    const handleShowMore = () => {
+        setVisibleCount(books.length)
+    }
 
     return (
         <div>
@@ -62,46 +72,57 @@ export default function ReadBooksSection({ books }: ReadBooksSectionProps) {
                 </div>
             </div>
 
-            {/* Expandable Book Grid */}
-            <div
-                className="read-books-grid-wrapper"
-                style={{
-                    maxHeight: isOpen ? '2000px' : '0',
-                    overflow: 'hidden',
-                    transition: 'max-height 0.4s ease, opacity 0.3s ease, margin 0.3s ease',
-                    opacity: isOpen ? 1 : 0,
-                    marginTop: isOpen ? '20px' : '0',
-                }}
-            >
-                <div className="read-books-grid">
-                    {books.map((book, index) => (
-                        <Link
-                            key={book.id}
-                            href={`/books/${book.id}`}
-                            style={{ textDecoration: 'none', color: 'inherit' }}
-                        >
-                            <div className="read-book-card">
-                                <div
-                                    className="read-book-cover"
-                                    style={{ background: coverGradients[index % coverGradients.length] }}
-                                >
-                                    <span className="read-book-spine"></span>
-                                    <div className="read-book-cover-title">{book.title}</div>
+            {/* Expandable Book Grid — no maxHeight cap */}
+            {isOpen && (
+                <div
+                    className="read-books-grid-wrapper"
+                    style={{
+                        marginTop: '20px',
+                        animation: 'fadeSlideDown 0.35s ease forwards',
+                    }}
+                >
+                    <div className="read-books-grid">
+                        {visibleBooks.map((book, index) => (
+                            <Link
+                                key={book.id}
+                                href={`/books/${book.id}`}
+                                style={{ textDecoration: 'none', color: 'inherit' }}
+                            >
+                                <div className="read-book-card">
+                                    <div
+                                        className="read-book-cover"
+                                        style={{ background: coverGradients[index % coverGradients.length] }}
+                                    >
+                                        <span className="read-book-spine"></span>
+                                        <div className="read-book-cover-title">{book.title}</div>
+                                    </div>
+                                    <div className="read-book-info">
+                                        <h4 className="read-book-title" title={book.title}>{book.title}</h4>
+                                        <p className="read-book-author">{book.author}</p>
+                                    </div>
                                 </div>
-                                <div className="read-book-info">
-                                    <h4 className="read-book-title" title={book.title}>{book.title}</h4>
-                                    <p className="read-book-author">{book.author}</p>
-                                </div>
-                            </div>
-                        </Link>
-                    ))}
+                            </Link>
+                        ))}
+                    </div>
+
+                    {hasMore && (
+                        <div style={{ textAlign: 'center', marginTop: '20px' }}>
+                            <button
+                                onClick={(e) => { e.stopPropagation(); handleShowMore(); }}
+                                className="read-books-show-more-btn"
+                            >
+                                Daha Fazla Göster ({books.length - visibleCount} kalan)
+                            </button>
+                        </div>
+                    )}
+
+                    {books.length === 0 && (
+                        <p style={{ textAlign: 'center', color: '#999', padding: '20px' }}>
+                            Henüz bir kitap değerlendirmedin. Değerlendirdiğin kitaplar burada görünecek!
+                        </p>
+                    )}
                 </div>
-                {books.length === 0 && (
-                    <p style={{ textAlign: 'center', color: '#999', padding: '20px' }}>
-                        Henüz bir kitap değerlendirmedin. Değerlendirdiğin kitaplar burada görünecek!
-                    </p>
-                )}
-            </div>
+            )}
         </div>
     )
 }

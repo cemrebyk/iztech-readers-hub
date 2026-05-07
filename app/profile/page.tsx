@@ -5,7 +5,9 @@ import CreateListForm from './CreateListForm';
 import ReadBooksSection from './ReadBooksSection';
 import DeleteListButton from './DeleteListButton';
 import Recommendations from './Recommendations';
-import Link from 'next/link'; // Navigasyon için eklendi
+import Link from 'next/link';
+import Image from 'next/image'; // Rozet ikonları için eklendi
+import GoodreadsImport from '../components/GoodreadsImport'; // Bileşeni import et
 
 export default async function ProfilePage() {
     const supabase = await createClient();
@@ -17,16 +19,22 @@ export default async function ProfilePage() {
         redirect('/login');
     }
 
-    // 2. Profil, Listeler ve Değerlendirmeleri paralel çek (Performance Optimization)
-    const [profileRes, listsRes, reviewsRes] = await Promise.all([
+    // 2. Profil, Listeler, Değerlendirmeler VE Başarımları PARALEL çek (Performance Optimization)
+    const [profileRes, listsRes, reviewsRes, badgesRes] = await Promise.all([
         supabase.from('profiles').select('*').eq('id', user.id).single(),
         supabase.from('book_lists').select('*').eq('user_id', user.id).order('created_at', { ascending: false }),
-        supabase.from('reviews').select('*, books(id, title, author)').eq('user_id', user.id).order('created_at', { ascending: false })
+        supabase.from('reviews').select('*, books(id, title, author)').eq('user_id', user.id).order('created_at', { ascending: false }),
+        // YENİ: Kullanıcının rozetlerini ilişkili tablo üzerinden çekiyoruz
+        supabase.from('user_achievements').select(`
+            unlocked_at,
+            achievements ( id, name, description, icon_url )
+        `).eq('user_id', user.id).order('unlocked_at', { ascending: false })
     ]);
 
     const profile = profileRes.data;
     const userLists = listsRes.data || [];
     const userReviews = reviewsRes.data || [];
+    const userBadges = badgesRes.data || []; // Rozet datası
 
     // Extract unique books from reviews (reviewed = read)
     const readBooksMap = new Map<string, { id: string; title: string; author: string }>();
@@ -37,7 +45,6 @@ export default async function ProfilePage() {
         }
     });
     const readBooks = Array.from(readBooksMap.values());
-
     return (
         <>
             <Navbar />
@@ -54,7 +61,51 @@ export default async function ProfilePage() {
                             <p style={{ margin: 0, color: '#666', fontSize: '1.1rem' }}>🎓 {user?.email}</p>
                         </div>
                     </div>
+                    {/* YENİ: BAŞARIMLARIM BÖLÜMÜ */}
+                    <div style={{ background: 'white', padding: '30px', borderRadius: '15px', boxShadow: '0 4px 15px rgba(0,0,0,0.05)', marginBottom: '30px' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', borderBottom: '2px solid #eee', paddingBottom: '10px' }}>
+                            <h2 style={{ margin: 0 }}>🏆 Başarımlarım</h2>
+                            <Link
+                                href="/profile/achievements"
+                                style={{
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: '6px',
+                                    padding: '8px 18px',
+                                    background: 'var(--color-primary, #9a0e20)',
+                                    color: 'white',
+                                    textDecoration: 'none',
+                                    fontWeight: 600,
+                                    fontSize: '0.9rem',
+                                    borderRadius: '8px',
+                                    transition: 'all 0.25s ease',
+                                    boxShadow: '0 3px 10px rgba(154, 14, 32, 0.25)',
+                                }}
+                            >
+                                Tüm Başarımları Gör →
+                            </Link>
+                        </div>
 
+                        {userBadges.length > 0 ? (
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: '20px' }}>
+                                {userBadges.map((badgeEntry: any) => {
+                                    const badge = badgeEntry.achievements;
+                                    return (
+                                        <div key={badge.id} style={{ padding: '20px', border: '1px solid #eee', borderRadius: '12px', textAlign: 'center', background: '#fafafa' }}>
+                                            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '10px' }}>
+                                                {/* Fallback olarak public/globe.svg kullanıyoruz */}
+                                                <Image src={badge.icon_url || '/globe.svg'} alt={badge.name} width={50} height={50} />
+                                            </div>
+                                            <h4 style={{ margin: '0 0 5px 0', color: '#9a0e20', fontSize: '1rem' }}>{badge.name}</h4>
+                                            <p style={{ margin: 0, fontSize: '0.8rem', color: '#666' }}>{badge.description}</p>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        ) : (
+                            <p style={{ textAlign: 'center', color: '#999', padding: '10px 0' }}>Henüz bir başarım kazanmadın. Kütüphaneyi keşfetmeye başla!</p>
+                        )}
+                    </div>
                     {/* Okuduğum Kitaplar - Expandable */}
                     <div style={{ marginBottom: '40px' }}>
                         <ReadBooksSection books={readBooks} />
@@ -62,7 +113,22 @@ export default async function ProfilePage() {
 
                     {/* ÖNERILER */}
                     <Recommendations userId={user.id} />
+                    {/* ========================================== */}
+                    {/* YENİ EKLENEN: GOODREADS AKTARIM BÖLÜMÜ     */}
+                    {/* ========================================== */}
+                    <div style={{ background: 'white', padding: '30px', borderRadius: '15px', boxShadow: '0 4px 15px rgba(0,0,0,0.05)', marginBottom: '30px' }}>
+                        <h2 style={{ marginBottom: '20px', borderBottom: '2px solid #eee', paddingBottom: '10px' }}>
+                            📚 Kütüphaneni Genişlet
+                        </h2>
+                        <p style={{ color: '#666', fontSize: '0.92rem', marginBottom: '16px', lineHeight: '1.6' }}>
+                            Öneri motorumuzun seni daha iyi tanıması için geçmiş okuma verilerine ihtiyacımız var.
+                            Goodreads'ten indirdiğin <strong>goodreads_library_export.csv</strong> dosyasını yükleyerek okuduğun kitapları profiline taşıyabilirsin.
+                        </p>
 
+                        {/* Import Bileşenimiz Burada Çalışıyor */}
+                        <GoodreadsImport />
+                    </div>
+                    {/* ========================================== */}
                     {/* OKUMA LİSTELERİ */}
                     <div style={{ background: 'white', padding: '30px', borderRadius: '15px', boxShadow: '0 4px 15px rgba(0,0,0,0.05)', marginBottom: '30px' }}>
                         <h2 style={{ marginBottom: '20px', borderBottom: '2px solid #eee', paddingBottom: '10px' }}>📌 Okuma Listelerim</h2>

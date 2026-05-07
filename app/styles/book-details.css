@@ -1080,3 +1080,139 @@
         width: 100%;
     }
 }
+
+/* ================================
+   Read Books - Show More Button
+   ================================ */
+@keyframes fadeSlideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.read-books-show-more-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.7rem 2rem;
+    background: var(--color-white, #fff);
+    color: var(--color-primary, #9a0e20);
+    font-family: var(--font-body, 'Inter', sans-serif);
+    font-size: 0.9rem;
+    font-weight: 600;
+    border: 2px solid var(--color-sepia, #e8dcc8);
+    border-radius: var(--radius-full, 999px);
+    cursor: pointer;
+    transition: all 0.25s ease;
+}
+
+.read-books-show-more-btn:hover {
+    background: var(--color-sepia-light, #f5f0e6);
+    border-color: var(--color-primary, #9a0e20);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(154, 14, 32, 0.12);
+}
+
+/* ================================
+   Goodreads Import Component
+   ================================ */
+.goodreads-dropzone {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem 1.5rem;
+    border: 2px dashed var(--color-sepia, #e8dcc8);
+    border-radius: var(--radius-lg, 12px);
+    background: var(--color-sepia-light, #f5f0e6);
+    text-align: center;
+    transition: all 0.25s ease;
+    cursor: default;
+}
+
+.goodreads-dropzone.dragging {
+    border-color: var(--color-primary, #9a0e20);
+    background: rgba(154, 14, 32, 0.04);
+    box-shadow: 0 0 0 4px rgba(154, 14, 32, 0.08);
+}
+
+.goodreads-dropzone.uploading {
+    opacity: 0.7;
+    pointer-events: none;
+}
+
+.goodreads-dropzone-icon {
+    font-size: 2.5rem;
+    margin-bottom: 0.6rem;
+    opacity: 0.7;
+}
+
+.goodreads-dropzone-text {
+    font-size: 0.95rem;
+    color: var(--color-text-light, #5c5650);
+    margin-bottom: 0.8rem;
+}
+
+.goodreads-browse-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.6rem 1.6rem;
+    background: var(--color-primary, #9a0e20);
+    color: white;
+    font-family: var(--font-body, 'Inter', sans-serif);
+    font-size: 0.9rem;
+    font-weight: 600;
+    border: none;
+    border-radius: var(--radius-md, 8px);
+    cursor: pointer;
+    transition: all 0.25s ease;
+    box-shadow: 0 3px 10px rgba(154, 14, 32, 0.2);
+}
+
+.goodreads-browse-btn:hover {
+    background: var(--color-primary-dark, #7a0b19);
+    transform: translateY(-2px);
+    box-shadow: 0 5px 16px rgba(154, 14, 32, 0.3);
+}
+
+.goodreads-dropzone-hint {
+    margin-top: 0.6rem;
+    font-size: 0.78rem;
+    color: var(--color-text-muted, #8a837a);
+    font-style: italic;
+}
+
+.goodreads-message {
+    margin-top: 1rem;
+    padding: 0.7rem 1.2rem;
+    border-radius: var(--radius-md, 8px);
+    font-size: 0.88rem;
+    font-weight: 500;
+    width: 100%;
+    max-width: 420px;
+}
+
+.goodreads-message.success {
+    background: #e6f4ea;
+    color: #1e7e34;
+    border: 1px solid #b7dfbf;
+}
+
+.goodreads-message.error {
+    background: #fce8e6;
+    color: #c5221f;
+    border: 1px solid #f5c6c2;
+}
+
+.goodreads-message.info {
+    background: #fef7e0;
+    color: #8b6914;
+    border: 1px solid #f0dfa0;
+}
