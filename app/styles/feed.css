@@ -1,0 +1,45 @@
+/* ================================
+   FEED PAGE - Campus Feed Styles
+   ================================ */
+
+.feed-card {
+    transition: transform 0.25s ease, box-shadow 0.25s ease !important;
+}
+
+.feed-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 24px rgba(45, 42, 38, 0.12) !important;
+    border-color: var(--color-sepia-dark, #d4c4a8) !important;
+}
+
+.feed-card a img,
+.feed-card a > div:first-child {
+    transition: opacity 0.2s ease;
+}
+
+.feed-card:hover a > div:first-child {
+    opacity: 0.92;
+}
+
+/* Feed card link styles */
+.feed-card a {
+    text-decoration: none;
+}
+
+.feed-card a:hover {
+    opacity: 0.85;
+}
+
+/* Responsive: Stack layout on small screens */
+@media (max-width: 640px) {
+    .feed-card > div {
+        flex-direction: column !important;
+    }
+    
+    .feed-card > div > a > div {
+        width: 100% !important;
+        min-height: 160px !important;
+        height: 160px !important;
+        border-radius: 16px 16px 0 0;
+    }
+}

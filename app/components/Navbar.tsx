@@ -1,22 +1,21 @@
 "use client"
 
 import { useEffect, useState } from 'react'
-import { supabase } from '../../lib/supabase'
+import { supabase } from '../../lib/supabase' // Mevcut yolun
 import { useRouter } from 'next/navigation'
+import Link from 'next/link' // Next.js optimizasyonu için ekledik
 
 export default function Navbar() {
     const [user, setUser] = useState<any>(null)
     const router = useRouter()
 
     useEffect(() => {
-        // 1. Sayfa yüklendiğinde oturum açmış biri var mı diye kontrol et
         const checkUser = async () => {
             const { data: { user } } = await supabase.auth.getUser()
             setUser(user)
         }
         checkUser()
 
-        // 2. Kullanıcı giriş/çıkış yaptığında Navbar'ı anında güncelle (Dinleyici)
         const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
             setUser(session?.user || null)
         })
@@ -24,30 +23,34 @@ export default function Navbar() {
         return () => authListener.subscription.unsubscribe()
     }, [])
 
-    // Çıkış Yapma Fonksiyonu
     const handleLogout = async () => {
         await supabase.auth.signOut()
-        router.push('/') // Çıkış yapınca ana sayfaya at
+        router.push('/')
     }
 
     return (
         <nav className="navbar" id="navbar">
             <div className="container nav-container">
-                <a href="/" className="logo">
+                <Link href="/" className="logo">
                     <span className="logo-icon">📚</span>
                     <span className="logo-text">IZTECH <span className="highlight">Reader's Hub</span></span>
-                </a>
+                </Link>
                 <ul className="nav-links">
-                    <li><a href="/">Home</a></li>
-                    <li><a href="/books">Browse Books</a></li>
+                    <li><Link href="/">Home</Link></li>
+                    <li><Link href="/books">Browse Books</Link></li>
 
-                    {/* EĞER KULLANICI GİRİŞ YAPMIŞSA: */}
                     {user ? (
                         <>
+                            {/* YENİ EKLENEN KISIM: Kampüs Akışı */}
                             <li>
-                                <a href="/profile" style={{ fontWeight: 'bold', color: 'var(--color-primary)' }}>
+                                <Link href="/feed" className="nav-link-special">
+                                    📢 Kampüs Akışı
+                                </Link>
+                            </li>
+                            <li>
+                                <Link href="/profile" style={{ fontWeight: 'bold', color: 'var(--color-primary)' }}>
                                     👤 Profilim
-                                </a>
+                                </Link>
                             </li>
                             <li>
                                 <button onClick={handleLogout} className="btn btn-secondary btn-sm" style={{ padding: '8px 15px' }}>
@@ -56,8 +59,7 @@ export default function Navbar() {
                             </li>
                         </>
                     ) : (
-                        /* EĞER KULLANICI GİRİŞ YAPMAMIŞSA: */
-                        <li><a href="/login" className="btn btn-primary">Sign In</a></li>
+                        <li><Link href="/login" className="btn btn-primary">Sign In</Link></li>
                     )}
                 </ul>
             </div>
