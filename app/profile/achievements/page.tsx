@@ -5,34 +5,7 @@ import Link from 'next/link';
 
 // All available achievements in the system — placeholder library/book-related ones
 const ALL_ACHIEVEMENTS = [
-    {
-        id: 'first-book',
-        name: 'İlk Adım',
-        description: 'İlk kitabını ödünç al',
-        icon: '📖',
-        category: 'Ödünç Alma',
-    },
-    {
-        id: 'bookworm-5',
-        name: 'Kitap Kurdu',
-        description: '5 kitap ödünç al',
-        icon: '🐛',
-        category: 'Ödünç Alma',
-    },
-    {
-        id: 'bookworm-25',
-        name: 'Kütüphane Aşığı',
-        description: '25 kitap ödünç al',
-        icon: '📚',
-        category: 'Ödünç Alma',
-    },
-    {
-        id: 'bookworm-100',
-        name: 'Okuma Makinesi',
-        description: '100 kitap ödünç al',
-        icon: '🏭',
-        category: 'Ödünç Alma',
-    },
+
     {
         id: 'first-review',
         name: 'İlk Eleştiri',
@@ -88,34 +61,6 @@ const ALL_ACHIEVEMENTS = [
         description: '10 farklı türde kitap oku',
         icon: '🌍',
         category: 'Keşif',
-    },
-    {
-        id: 'early-bird',
-        name: 'Erken Kuş',
-        description: 'Ödünç aldığın kitabı süresinden önce iade et',
-        icon: '🐦',
-        category: 'Kütüphane',
-    },
-    {
-        id: 'punctual',
-        name: 'Dakik Okuyucu',
-        description: '10 kitabı zamanında iade et',
-        icon: '⏰',
-        category: 'Kütüphane',
-    },
-    {
-        id: 'streak-7',
-        name: 'Haftalık Seri',
-        description: '7 gün üst üste kütüphaneye gir',
-        icon: '🔥',
-        category: 'Aktivite',
-    },
-    {
-        id: 'streak-30',
-        name: 'Aylık Seri',
-        description: '30 gün üst üste kütüphaneye gir',
-        icon: '💎',
-        category: 'Aktivite',
     },
     {
         id: 'social-butterfly',

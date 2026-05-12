@@ -67,20 +67,21 @@ export default function Recommendations({ userId }: { userId: string }) {
         e.preventDefault();
         e.stopPropagation();
 
-        // MİMARİ KARAR: insert yerine upsert kullanarak "Duplicate Key" hatasını engelliyoruz
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
+
+        const cleanPayload = {
+            user_id: user.id,
+            book_id: bookId,
+            status: 'hidden'
+        };
+
         const { error } = await supabase
             .from('reading_list')
-            .upsert(
-                {
-                    user_id: userId,
-                    book_id: bookId,
-                    status: 'hidden'
-                },
-                { onConflict: 'user_id, book_id' } // Bu sütunlarda çakışma olursa güncelle
-            );
+            .upsert(cleanPayload, { onConflict: 'user_id, book_id' });
 
         if (error) {
-            console.error("Kalıcılık Hatası (Persistence Error):", error.message);
+            console.error("Kalıcılık Hatası:", error.message);
             return;
         }
 
