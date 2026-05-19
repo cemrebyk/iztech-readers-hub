@@ -29,6 +29,7 @@ export default async function FeedPage() {
                 comment,
                 tags,
                 created_at,
+                user_id,
                 profiles:user_id (
                     email
                 ),
@@ -111,6 +112,7 @@ export default async function FeedPage() {
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', paddingBottom: '60px' }}>
                         {reviewsWithCovers.length > 0 ? (
                             reviewsWithCovers.map((rev: any) => {
+                                const userId = rev.user_id;
                                 const username = rev.profiles?.email ? rev.profiles.email.split('@')[0] : 'Bir Okur';
                                 const initial = username.charAt(0).toUpperCase();
                                 const coverGradient = "linear-gradient(135deg, #9a0e20 0%, #6b0a17 100%)";
@@ -179,30 +181,32 @@ export default async function FeedPage() {
                                                     marginBottom: '10px',
                                                 }}>
                                                     <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                                                        {/* Avatar */}
-                                                        <div style={{
-                                                            width: '36px',
-                                                            height: '36px',
-                                                            borderRadius: '50%',
-                                                            background: 'var(--color-primary, #9a0e20)',
-                                                            color: 'white',
-                                                            display: 'flex',
-                                                            alignItems: 'center',
-                                                            justifyContent: 'center',
-                                                            fontWeight: 700,
-                                                            fontSize: '0.85rem',
-                                                            flexShrink: 0,
-                                                        }}>
-                                                            {initial}
-                                                        </div>
-                                                        <div>
-                                                            <span style={{
+                                                        {/* Avatar + Username — links to public profile */}
+                                                        <Link href={`/profile/${userId}`} className="feed-profile-link">
+                                                            <div className="feed-avatar" style={{
+                                                                width: '36px',
+                                                                height: '36px',
+                                                                borderRadius: '50%',
+                                                                background: 'var(--color-primary, #9a0e20)',
+                                                                color: 'white',
+                                                                display: 'flex',
+                                                                alignItems: 'center',
+                                                                justifyContent: 'center',
+                                                                fontWeight: 700,
+                                                                fontSize: '0.85rem',
+                                                                flexShrink: 0,
+                                                            }}>
+                                                                {initial}
+                                                            </div>
+                                                            <span className="feed-username" style={{
                                                                 fontWeight: 700,
                                                                 color: 'var(--color-text, #2d2a26)',
                                                                 fontSize: '0.95rem',
                                                             }}>
                                                                 {username}
                                                             </span>
+                                                        </Link>
+                                                        <div>
                                                             <p style={{
                                                                 fontSize: '0.8rem',
                                                                 color: 'var(--color-text-muted, #8a837a)',

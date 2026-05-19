@@ -58,8 +58,11 @@ export default async function ListDetailsPage({ params }: { params: Promise<{ id
                     {/* Liste Üst Bilgisi */}
                     <div style={{ marginBottom: '40px', borderBottom: '3px solid #9a0e20', paddingBottom: '20px' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <Link href="/profile" style={{ color: '#9a0e20', textDecoration: 'none', fontWeight: 'bold', fontSize: '0.9rem' }}>
-                                ← PROFİLE DÖN
+                            <Link
+                                href={isOwner ? '/profile' : `/profile/${listData.user_id}`}
+                                style={{ color: '#9a0e20', textDecoration: 'none', fontWeight: 'bold', fontSize: '0.9rem' }}
+                            >
+                                {isOwner ? '← PROFİLE DÖN' : '← PROFİLE DÖN'}
                             </Link>
                             {isOwner && (
                                 <DeleteListButton listId={id} listName={listData.name} redirectAfterDelete={true} />
@@ -119,14 +122,20 @@ export default async function ListDetailsPage({ params }: { params: Promise<{ id
                                             </p>
                                         )}
 
-                                        {/* Silme Butonu Bileşeni */}
-                                        <RemoveFromListAction listId={id} bookId={item.books.id} />
+                                        {/* Silme Butonu — sadece liste sahibi görebilir */}
+                                        {isOwner && (
+                                            <RemoveFromListAction listId={id} bookId={item.books.id} />
+                                        )}
                                     </div>
                                 </div>
                             ))
                         ) : (
                             <div style={{ textAlign: 'center', padding: '60px', background: 'white', borderRadius: '20px', border: '2px dashed #eee' }}>
-                                <p style={{ fontSize: '1.2rem', color: '#999' }}>Bu liste henüz boş. Keşfet sayfasından kitap eklemeye başla!</p>
+                                <p style={{ fontSize: '1.2rem', color: '#999' }}>
+                                    {isOwner
+                                        ? 'Bu liste henüz boş. Keşfet sayfasından kitap eklemeye başla!'
+                                        : 'Bu liste henüz boş.'}
+                                </p>
                             </div>
                         )}
                     </div>
