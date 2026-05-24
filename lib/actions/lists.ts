@@ -2,6 +2,7 @@
 // lib/actions/lists.ts içindesin, bir üst klasördeki supabase-server.ts'e gidiyorsun
 import { createClient } from '../supabase-server';
 import { revalidatePath } from 'next/cache';
+import { checkAndAwardAchievements } from './achievements';
 
 const ALLOWED_LIST_NAMES = [
     "📚 To Be Read",
@@ -42,6 +43,8 @@ export async function createBookList(formData: FormData) {
         }
         return { error: error.message };
     }
+
+    await checkAndAwardAchievements(user.id, 'list');
 
     revalidatePath('/profile');
 }

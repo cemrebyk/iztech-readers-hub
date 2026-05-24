@@ -3,104 +3,20 @@ import { redirect } from 'next/navigation';
 import Navbar from '../../components/Navbar';
 import Link from 'next/link';
 
-// All available achievements in the system — placeholder library/book-related ones
-const ALL_ACHIEVEMENTS = [
-
-    {
-        id: 'first-review',
-        name: 'İlk Eleştiri',
-        description: 'İlk değerlendirmeni yaz',
-        icon: '✍️',
-        category: 'Değerlendirme',
-    },
-    {
-        id: 'reviewer-10',
-        name: 'Kalem Ustası',
-        description: '10 değerlendirme yaz',
-        icon: '🖊️',
-        category: 'Değerlendirme',
-    },
-    {
-        id: 'reviewer-50',
-        name: 'Eleştirmen',
-        description: '50 değerlendirme yaz',
-        icon: '📝',
-        category: 'Değerlendirme',
-    },
-    {
-        id: 'five-star',
-        name: '5 Yıldız',
-        description: 'Bir kitaba 5 yıldız ver',
-        icon: '⭐',
-        category: 'Değerlendirme',
-    },
-    {
-        id: 'first-list',
-        name: 'Koleksiyoncu',
-        description: 'İlk okuma listeni oluştur',
-        icon: '📋',
-        category: 'Listeler',
-    },
-    {
-        id: 'list-master',
-        name: 'Liste Ustası',
-        description: '5 okuma listesi oluştur',
-        icon: '🗂️',
-        category: 'Listeler',
-    },
-    {
-        id: 'genre-explorer',
-        name: 'Tür Kaşifi',
-        description: '5 farklı türde kitap oku',
-        icon: '🧭',
-        category: 'Keşif',
-    },
-    {
-        id: 'genre-master',
-        name: 'Her Türün Ustası',
-        description: '10 farklı türde kitap oku',
-        icon: '🌍',
-        category: 'Keşif',
-    },
-    {
-        id: 'social-butterfly',
-        name: 'Sosyal Kelebek',
-        description: 'Bir kitap kulübüne katıl',
-        icon: '🦋',
-        category: 'Sosyal',
-    },
-    {
-        id: 'club-founder',
-        name: 'Kulüp Kurucusu',
-        description: 'Bir kitap kulübü oluştur',
-        icon: '🏛️',
-        category: 'Sosyal',
-    },
-    {
-        id: 'classic-reader',
-        name: 'Klasik Okuyucu',
-        description: '10 klasik eser oku',
-        icon: '🏺',
-        category: 'Keşif',
-    },
-    {
-        id: 'night-owl',
-        name: 'Gece Kuşu',
-        description: 'Gece 12\'den sonra bir değerlendirme yaz',
-        icon: '🦉',
-        category: 'Aktivite',
-    },
-];
+type Achievement = {
+    id: string;
+    name: string;
+    description: string;
+    icon: string | null;
+    category: string;
+};
 
 const CATEGORIES = [
     { key: 'all', label: 'Tümü' },
-    { key: 'Ödünç Alma', label: '📖 Ödünç Alma' },
     { key: 'Değerlendirme', label: '✍️ Değerlendirme' },
     { key: 'Listeler', label: '📋 Listeler' },
     { key: 'Keşif', label: '🧭 Keşif' },
-    { key: 'Kütüphane', label: '🏛️ Kütüphane' },
     { key: 'Aktivite', label: '🔥 Aktivite' },
-    { key: 'Sosyal', label: '🦋 Sosyal' },
 ];
 
 export default async function AchievementsPage({
@@ -116,27 +32,34 @@ export default async function AchievementsPage({
         redirect('/login');
     }
 
-    // Fetch user's unlocked achievements
-    const { data: userBadges } = await supabase
-        .from('user_achievements')
-        .select('unlocked_at, achievements ( id, name, description, icon_url )')
-        .eq('user_id', user.id);
+    // Fetch all achievement definitions + user's unlocked rows in parallel
+    const [{ data: allAchievementsData }, { data: userBadges }] = await Promise.all([
+        supabase
+            .from('achievements')
+            .select('id, name, description, icon, category'),
+        supabase
+            .from('user_achievements')
+            .select('achievement_id, unlocked_at')
+            .eq('user_id', user.id),
+    ]);
 
-    const unlockedIds = new Set(
-        (userBadges || []).map((b: any) => b.achievements?.id).filter(Boolean)
-    );
+    const allAchievements: Achievement[] = (allAchievementsData || []) as Achievement[];
+
     const unlockedMap = new Map(
-        (userBadges || []).map((b: any) => [b.achievements?.id, b.unlocked_at])
+        (userBadges || []).map((b: any) => [b.achievement_id, b.unlocked_at])
     );
+    const unlockedIds = new Set(unlockedMap.keys());
 
     const selectedCategory = (params?.category as string) || 'all';
 
     const filteredAchievements = selectedCategory === 'all'
-        ? ALL_ACHIEVEMENTS
-        : ALL_ACHIEVEMENTS.filter(a => a.category === selectedCategory);
+        ? allAchievements
+        : allAchievements.filter(a => a.category === selectedCategory);
 
-    const totalUnlocked = ALL_ACHIEVEMENTS.filter(a => unlockedIds.has(a.id)).length;
-    const progressPercent = Math.round((totalUnlocked / ALL_ACHIEVEMENTS.length) * 100);
+    const totalUnlocked = allAchievements.filter(a => unlockedIds.has(a.id)).length;
+    const progressPercent = allAchievements.length === 0
+        ? 0
+        : Math.round((totalUnlocked / allAchievements.length) * 100);
 
     return (
         <>
@@ -160,7 +83,7 @@ export default async function AchievementsPage({
                             <div className="achievements-progress-info">
                                 <span className="achievements-progress-label">İlerleme</span>
                                 <span className="achievements-progress-count">
-                                    {totalUnlocked} / {ALL_ACHIEVEMENTS.length}
+                                    {totalUnlocked} / {allAchievements.length}
                                 </span>
                             </div>
                             <div className="achievements-progress-bar">

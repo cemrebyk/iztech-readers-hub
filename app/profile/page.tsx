@@ -6,7 +6,6 @@ import ReadBooksSection from './ReadBooksSection';
 import DeleteListButton from './DeleteListButton';
 import Recommendations from './Recommendations';
 import Link from 'next/link';
-import Image from 'next/image'; // Rozet ikonları için eklendi
 import GoodreadsImport from '../components/GoodreadsImport'; // Bileşeni import et
 
 export default async function ProfilePage() {
@@ -27,7 +26,7 @@ export default async function ProfilePage() {
         // YENİ: Kullanıcının rozetlerini ilişkili tablo üzerinden çekiyoruz
         supabase.from('user_achievements').select(`
             unlocked_at,
-            achievements ( id, name, description, icon_url )
+            achievements ( id, name, description, icon )
         `).eq('user_id', user.id).order('unlocked_at', { ascending: false })
     ]);
 
@@ -92,9 +91,8 @@ export default async function ProfilePage() {
                                     const badge = badgeEntry.achievements;
                                     return (
                                         <div key={badge.id} style={{ padding: '20px', border: '1px solid #eee', borderRadius: '12px', textAlign: 'center', background: '#fafafa' }}>
-                                            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '10px' }}>
-                                                {/* Fallback olarak public/globe.svg kullanıyoruz */}
-                                                <Image src={badge.icon_url || '/globe.svg'} alt={badge.name} width={50} height={50} />
+                                            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '10px', fontSize: '2.5rem', lineHeight: 1 }}>
+                                                <span aria-label={badge.name}>{badge.icon || '🏅'}</span>
                                             </div>
                                             <h4 style={{ margin: '0 0 5px 0', color: '#9a0e20', fontSize: '1rem' }}>{badge.name}</h4>
                                             <p style={{ margin: 0, fontSize: '0.8rem', color: '#666' }}>{badge.description}</p>

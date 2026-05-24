@@ -2,6 +2,7 @@
 
 import { createClient } from '../supabase-server';
 import { revalidatePath } from 'next/cache';
+import { checkAndAwardAchievements } from './achievements';
 
 export async function submitReview(bookId: string, rating: number, tags: string[]) {
     const supabase = await createClient();
@@ -34,6 +35,8 @@ export async function submitReview(bookId: string, rating: number, tags: string[
         }]);
 
     if (error) throw error;
+
+    await checkAndAwardAchievements(user.id, 'review');
 
     revalidatePath(`/books/${bookId}`);
 }

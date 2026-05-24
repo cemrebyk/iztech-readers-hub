@@ -4,25 +4,6 @@ import Navbar from '../../components/Navbar';
 import Link from 'next/link';
 import ReadBooksSection from '../ReadBooksSection';
 
-// Same achievements list used in the achievements page — needed for icon mapping
-const ALL_ACHIEVEMENTS = [
-    { id: 'first-review', name: 'İlk Eleştiri', description: 'İlk değerlendirmeni yaz', icon: '✍️', category: 'Değerlendirme' },
-    { id: 'reviewer-10', name: 'Kalem Ustası', description: '10 değerlendirme yaz', icon: '🖊️', category: 'Değerlendirme' },
-    { id: 'reviewer-50', name: 'Eleştirmen', description: '50 değerlendirme yaz', icon: '📝', category: 'Değerlendirme' },
-    { id: 'five-star', name: '5 Yıldız', description: 'Bir kitaba 5 yıldız ver', icon: '⭐', category: 'Değerlendirme' },
-    { id: 'first-list', name: 'Koleksiyoncu', description: 'İlk okuma listeni oluştur', icon: '📋', category: 'Listeler' },
-    { id: 'list-master', name: 'Liste Ustası', description: '5 okuma listesi oluştur', icon: '🗂️', category: 'Listeler' },
-    { id: 'genre-explorer', name: 'Tür Kaşifi', description: '5 farklı türde kitap oku', icon: '🧭', category: 'Keşif' },
-    { id: 'genre-master', name: 'Her Türün Ustası', description: '10 farklı türde kitap oku', icon: '🌍', category: 'Keşif' },
-    { id: 'social-butterfly', name: 'Sosyal Kelebek', description: 'Bir kitap kulübüne katıl', icon: '🦋', category: 'Sosyal' },
-    { id: 'club-founder', name: 'Kulüp Kurucusu', description: 'Bir kitap kulübü oluştur', icon: '🏛️', category: 'Sosyal' },
-    { id: 'classic-reader', name: 'Klasik Okuyucu', description: '10 klasik eser oku', icon: '🏺', category: 'Keşif' },
-    { id: 'night-owl', name: 'Gece Kuşu', description: 'Gece 12\'den sonra bir değerlendirme yaz', icon: '🦉', category: 'Aktivite' },
-];
-
-// Map achievement ID → icon emoji for quick lookup
-const achievementIconMap = new Map(ALL_ACHIEVEMENTS.map(a => [a.id, a.icon]));
-
 export default async function PublicProfilePage({ params }: { params: Promise<{ id: string }> }) {
     const { id } = await params;
     const supabase = await createClient();
@@ -44,7 +25,7 @@ export default async function PublicProfilePage({ params }: { params: Promise<{ 
             .from('user_achievements')
             .select(`
                 unlocked_at,
-                achievements ( id, name, description, icon_url )
+                achievements ( id, name, description, icon )
             `)
             .eq('user_id', id)
             .order('unlocked_at', { ascending: false }),
@@ -113,7 +94,7 @@ export default async function PublicProfilePage({ params }: { params: Promise<{ 
                             <div className="public-badges-grid">
                                 {userBadges.map((badgeEntry: any) => {
                                     const badge = badgeEntry.achievements;
-                                    const icon = achievementIconMap.get(badge.id) || '🏅';
+                                    const icon = badge.icon || '🏅';
                                     return (
                                         <div key={badge.id} className="public-badge-card">
                                             <span className="public-badge-icon">{icon}</span>
