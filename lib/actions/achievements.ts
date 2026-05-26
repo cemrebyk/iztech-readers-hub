@@ -5,12 +5,17 @@ import { supabaseAdmin } from '../supabase-admin';
 type Trigger = 'review' | 'list' | 'genre';
 
 async function award(userId: string, achievementId: string) {
-    await supabaseAdmin
+    const { error } = await supabaseAdmin
         .from('user_achievements')
         .upsert(
             { user_id: userId, achievement_id: achievementId },
             { onConflict: 'user_id,achievement_id', ignoreDuplicates: true }
         );
+    if (error) {
+        console.error(`[achievements] award failed (${achievementId}):`, error);
+    } else {
+        console.log(`[achievements] awarded ${achievementId} to ${userId}`);
+    }
 }
 
 async function checkReviewAchievements(userId: string) {
@@ -93,17 +98,17 @@ async function checkGenreAchievements(userId: string) {
 }
 
 export async function checkAndAwardAchievements(userId: string, trigger: Trigger): Promise<void> {
+    console.log(`[achievements] check start userId=${userId} trigger=${trigger}`);
     try {
         if (trigger === 'review') {
             await checkReviewAchievements(userId);
-            // A review often implies the user has the book on their "Read" list,
-            // which may bump genre counts. Cheap enough to re-check.
             await checkGenreAchievements(userId);
         } else if (trigger === 'list') {
             await checkListAchievements(userId);
         } else if (trigger === 'genre') {
             await checkGenreAchievements(userId);
         }
+        console.log(`[achievements] check done userId=${userId} trigger=${trigger}`);
     } catch (err) {
         console.error('[achievements] check failed:', err);
     }
